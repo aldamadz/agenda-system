@@ -2,68 +2,39 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <title>Laporan Agenda - Marison Regency</title>
+    <title>Laporan Agenda Kerja</title>
     <style>
-        @page {
-            margin: 0.8cm;
-        }
-
         body {
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             font-size: 10px;
             color: #333;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
-        .header-container {
-            border-bottom: 2px solid #006688;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+        @page {
+            margin: 1cm;
         }
 
-        .logo-placeholder {
-            float: left;
-            width: 180px;
-        }
-
-        .company-info {
-            float: right;
-            text-align: right;
-        }
-
-        .company-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #006688;
-            margin-bottom: 2px;
-        }
-
-        .clear {
-            clear: both;
-        }
-
-        .report-title {
+        .header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 10px;
         }
 
-        .report-title h2 {
-            margin: 0;
-            text-decoration: underline;
-            font-size: 14px;
-            color: #000;
-        }
-
-        .table-header-custom {
-            background-color: #00FF00;
-            color: #000;
-            padding: 8px 12px;
-            font-weight: bold;
+        .header h1 {
             text-transform: uppercase;
-            border: 1px solid #000;
+            font-style: italic;
+            color: #4f46e5;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .header p {
+            margin: 5px 0 0;
             font-size: 9px;
-            margin-bottom: 0;
+            font-weight: bold;
+            color: #64748b;
         }
 
         table {
@@ -73,262 +44,177 @@
         }
 
         th {
-            background-color: #006688;
-            color: white;
-            padding: 6px 4px;
-            font-size: 8px;
-            border: 1px solid #000;
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: bold;
             text-transform: uppercase;
+            font-size: 8px;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
         }
 
         td {
-            border: 1px solid #000;
-            padding: 5px;
+            padding: 6px;
+            border: 1px solid #e2e8f0;
             vertical-align: top;
             word-wrap: break-word;
         }
 
-        .status-badge {
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-size: 7px;
+        .date-row {
+            background-color: #f1f5f9;
             font-weight: bold;
-            text-align: center;
-            display: block;
+            font-size: 9px;
         }
 
-        .bg-done {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
-
-        .bg-progress {
-            background-color: #fef3c7;
-            color: #92400e;
-        }
-
-        .text-red {
-            color: #dc2626;
-            font-weight: bold;
+        .weekend {
+            background-color: #fff1f2;
+            color: #e11d48;
         }
 
         .text-green {
             color: #16a34a;
-            font-weight: bold;
+        }
+
+        .text-red {
+            color: #e11d48;
+        }
+
+        .text-blue {
+            color: #2563eb;
         }
 
         .text-muted {
-            color: #999;
+            color: #94a3b8;
         }
 
-        .step-note {
-            font-size: 7px;
-            color: #666;
-            font-style: italic;
-            margin-left: 10px;
-            margin-bottom: 3px;
+        .step-container {
+            margin-bottom: 4px;
+            padding: 3px;
+            border-radius: 3px;
         }
 
-        .step-time {
+        .overdue-bg {
+            background-color: #fff1f2;
+            border-left: 3px solid #e11d48;
+        }
+
+        .symbol {
+            font-size: 11px;
+            display: inline-block;
+            width: 12px;
+        }
+
+        .duration-tag {
             font-size: 7px;
-            color: #16a34a;
-            font-weight: normal;
+            font-weight: bold;
+            margin-left: 4px;
         }
 
         .footer {
-            position: fixed;
-            bottom: -10px;
+            margin-top: 20px;
             font-size: 8px;
-            color: #aaa;
-            width: 100%;
             text-align: right;
+            color: #94a3b8;
         }
 
-        /* Style Tambahan untuk Keterlambatan */
-        .row-late {
-            background-color: #fff1f2;
-        }
-
-        /* Merah sangat muda untuk 1 baris */
-        .badge-late {
-            background-color: #be123c;
-            color: white;
-            padding: 2px;
-            border-radius: 2px;
-            font-size: 6px;
-            display: block;
-            margin-top: 2px;
+        .time-col {
+            font-size: 7.5px;
+            text-align: center;
+            line-height: 1.2;
         }
     </style>
 </head>
 
 <body>
-    @php
-        \Carbon\Carbon::setLocale('id');
-        $lastDate = null;
-    @endphp
-
-    <div class="header-container">
-        <div class="logo-placeholder">
-            @if (file_exists(public_path('images/logo.png')))
-                <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('images/logo.png'))) }}"
-                    style="height: 40px;">
-            @else
-                <div style="font-size: 18px; font-weight: bold; color: #006688;">MARISON REGENCY</div>
-            @endif
-        </div>
-        <div class="company-info">
-            <div class="company-name">MARISON REGENCY GROUP</div>
-            <div style="font-size: 8px; color: #666;">Monitoring Agenda Kerja - Digital System</div>
-        </div>
-        <div class="clear"></div>
+    <div class="header">
+        <h1>Laporan Monitoring Agenda</h1>
+        <p>Periode: {{ $month }} | PIC: {{ $filterInfo }}</p>
     </div>
 
-    <div class="report-title">
-        <h2>REKAPITULASI AGENDA KERJA HARIAN</h2>
-        <p style="margin: 5px 0; font-weight: bold;">Periode: {{ strtoupper($month) }}</p>
-        <p style="margin: 0; font-size: 9px; color: #555;">User: {{ $filterInfo ?? 'Seluruh Tim' }}</p>
-    </div>
-
-    <div class="table-header-custom">DAFTAR AGENDA & TAHAPAN PROGRES</div>
     <table>
         <thead>
             <tr>
-                <th width="25px">No</th>
-                <th width="90px">Hari & Tanggal</th>
-                <th width="110px">Judul Agenda</th>
-                <th width="175px">Tahapan Kerja & Catatan</th>
-                <th width="40px">Dibuat</th>
-                <th width="40px">Deadline</th>
-                <th width="40px">Selesai</th>
-                <th width="55px">Status</th>
+                <th width="15%">Waktu</th>
+                <th width="20%">PIC & Agenda</th>
+                <th width="45%">Tahapan & Durasi</th>
+                <th width="20%">Status</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($data as $index => $item)
-                @php
-                    $carbonDate = \Carbon\Carbon::parse($item->display_date);
-                    $currentDateString = $carbonDate->translatedFormat('l, d F Y');
-                    $isSameDate = $currentDateString === $lastDate;
-                    $lastDate = $currentDateString;
-
-                    // Logika Cek Terlambat (di awal agar bisa dipakai di tag <tr>)
-                    $isLate = false;
-                    if (
-                        $item->type === 'agenda' &&
-                        $item->display_status === 'completed' &&
-                        isset($item->jam_selesai) &&
-                        $item->jam_deadline !== '--:--'
-                    ) {
-                        $isLate = $item->jam_selesai > $item->jam_deadline;
-                    }
-                @endphp
-
-                @if ($item->type === 'weekend')
-                    <tr style="background-color: #fef2f2;">
-                        <td align="center" class="text-muted">{{ $index + 1 }}</td>
-                        <td style="font-weight: bold; color: #dc2626;">{{ $currentDateString }}</td>
-                        <td colspan="6" align="center"
-                            style="padding: 8px; color: #dc2626; font-style: italic; font-weight: bold;">
-                            --- LIBUR AKHIR PEKAN (SABTU/MINGGU) ---
+            @php $currentDate = null; @endphp
+            @foreach ($data as $item)
+                @if ($currentDate !== $item->display_date)
+                    <tr class="date-row {{ \Carbon\Carbon::parse($item->display_date)->isWeekend() ? 'weekend' : '' }}">
+                        <td colspan="4">{{ \Carbon\Carbon::parse($item->display_date)->translatedFormat('l, d F Y') }}
                         </td>
                     </tr>
-                @elseif($item->type === 'empty_day')
+                    @php $currentDate = $item->display_date; @endphp
+                @endif
+
+                @if ($item->type === 'agenda')
                     <tr>
-                        <td align="center" class="text-muted">{{ $index + 1 }}</td>
-                        <td style="font-weight: bold; background-color: #f9f9f9;">{{ $currentDateString }}</td>
-                        <td colspan="6" align="center" style="color: #d1d5db; font-style: italic; padding: 8px;">
-                            Tidak ada agenda kerja aktif
-                        </td>
-                    </tr>
-                @else
-                    {{-- PEWARNAAN BARIS DISINI --}}
-                    <tr class="{{ $isLate ? 'row-late' : '' }}">
-                        <td align="center" style="{{ $isSameDate ? 'color: #ccc;' : '' }}">{{ $index + 1 }}</td>
-                        <td
-                            style="{{ $isSameDate ? 'border-top: none; color: transparent;' : 'font-weight: bold; background-color: #f9f9f9;' }}">
-                            {{ $isSameDate ? '' : $currentDateString }}
-                        </td>
-                        <td style="font-weight: bold;">
-                            {{ $item->title }}
-                            <div style="font-size: 7px; font-weight: normal; color: #666; margin-top: 2px;">PIC:
-                                {{ $item->user->name }}</div>
+                        <td class="time-col">
+                            <div style="color: #64748b;">Mulai:</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">{{ $item->jam_dibuat }}</div>
+                            <div style="color: #64748b;">Limit:</div>
+                            <div
+                                style="font-weight: bold; color: {{ str_contains($item->jam_deadline, ' ') ? '#e11d48' : '#333' }};">
+                                {{ $item->jam_deadline }}
+                            </div>
                         </td>
                         <td>
-                            @if (isset($item->display_steps) && count($item->display_steps) > 0)
-                                @foreach ($item->display_steps as $step)
-                                    @php
-                                        // Logika baru:
-                                        // Step dianggap SELESAI jika:
-                                        // 1. Database mencatat sudah is_completed
-                                        // 2. Tanggal selesai step tersebut (completed_at) <= tanggal baris laporan yang sedang dirender
-
-                                        $stepIsFinished = false;
-                                        if ($step->is_completed && $step->completed_at) {
-                                            $stepFinishedDate = \Carbon\Carbon::parse($step->completed_at)->format(
-                                                'Y-m-d',
-                                            );
-                                            $rowDate = \Carbon\Carbon::parse($item->display_date)->format('Y-m-d');
-
-                                            if ($stepFinishedDate <= $rowDate) {
-                                                $stepIsFinished = true;
-                                            }
-                                        }
-                                    @endphp
-
-                                    <div style="font-size: 8px; margin-bottom: 1px;">
-                                        @if ($stepIsFinished)
-                                            {{-- Menggunakan Entity HTML dan Font DejaVu Sans --}}
-                                            <span class="text-green"
-                                                style="font-family: DejaVu Sans, sans-serif;">&#10004;</span>
+                            <div style="font-weight: bold; color: #4f46e5;">{{ $item->user->name }}</div>
+                            <div style="font-size: 9px; margin-top: 2px;">{{ $item->title }}</div>
+                        </td>
+                        <td>
+                            @foreach ($item->display_steps as $step)
+                                <div class="step-container {{ $step->is_overdue ? 'overdue-bg' : '' }}">
+                                    <span class="symbol">
+                                        @if ($step->is_completed)
+                                            <span class="text-green">&#10004;</span>
                                         @else
-                                            {{-- Menggunakan Entity HTML untuk lingkaran --}}
-                                            <span
-                                                style="color: #ccc; font-family: DejaVu Sans, sans-serif;">&#9675;</span>
+                                            <span class="text-muted">&#9675;</span>
                                         @endif
+                                    </span>
+                                    <span
+                                        style="{{ $step->is_completed ? 'color: #64748b;' : 'font-weight: bold;' }}">{{ $step->step_name }}</span>
 
-                                        <span style="margin-left: 2px;">{{ $step->step_name }}</span>
-
-                                        @if ($stepIsFinished && $step->completed_time)
-                                            <span class="step-time">({{ $step->completed_time }})</span>
-                                        @endif
-                                    </div>
-
-                                    @if ($step->notes)
-                                        <div class="step-note">Ket: {{ $step->notes }}</div>
+                                    @if ($step->duration)
+                                        <span class="duration-tag {{ $step->is_overdue ? 'text-red' : 'text-blue' }}">
+                                            [{{ $step->duration }}]
+                                            @if ($step->is_overdue)
+                                                <span>&#9888; <i>(Telat {{ $step->overdue_label }})</i></span>
+                                            @endif
+                                        </span>
                                     @endif
-                                @endforeach
-                            @else
-                                <span class="text-muted italic">Tidak ada rincian tahapan</span>
-                            @endif
-                        </td>
-                        <td align="center">{{ $item->jam_dibuat }}</td>
-                        <td align="center" class="text-red">{{ $item->jam_deadline }}</td>
-                        <td align="center">
-                            @if ($item->jam_selesai)
-                                <span class="{{ $isLate ? 'text-red' : 'text-green' }}">
-                                    {{ $item->jam_selesai }}
-                                </span>
-                                @if ($isLate)
-                                    <span class="badge-late">TERLAMBAT</span>
-                                @endif
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
+
+                                    @if ($step->is_completed)
+                                        <span style="float: right; font-size: 7px;"
+                                            class="text-muted">{{ $step->completed_time }}</span>
+                                    @endif
+                                    <div style="clear: both;"></div>
+                                </div>
+                            @endforeach
                         </td>
                         <td align="center">
-                            <span
-                                class="status-badge {{ $item->display_status === 'completed' ? 'bg-done' : 'bg-progress' }}">
-                                {{ $item->display_status === 'completed' ? 'SELESAI' : 'PROSES' }}
-                            </span>
+                            @if ($item->display_status === 'completed')
+                                <span class="text-green" style="font-weight: bold;">SELESAI
+                                    ({{ $item->jam_selesai }})</span>
+                            @else
+                                <span class="text-blue" style="font-weight: bold;">ONGOING</span>
+                            @endif
                         </td>
+                    </tr>
+                @elseif ($item->type === 'empty_day')
+                    <tr>
+                        <td colspan="4" align="center" style="color: #94a3b8; font-style: italic; padding: 10px;">
+                            Tidak ada agenda kerja.</td>
                     </tr>
                 @endif
             @endforeach
         </tbody>
     </table>
-    <div class="footer">Dicetak otomatis oleh Sistem Monitoring Marison Regency | PIC: {{ auth()->user()->name }} |
-        Waktu Cetak: {{ now()->translatedFormat('d F Y H:i:s') }}</div>
+    <div class="footer">Dicetak: {{ now()->translatedFormat('d F Y H:i') }}</div>
 </body>
 
 </html>
