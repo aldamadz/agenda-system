@@ -2,6 +2,8 @@
 
 use App\Models\Agenda;
 use App\Models\User;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 use function Livewire\Volt\{layout, title, state, computed};
 
 layout('components.layouts.app');
@@ -10,9 +12,62 @@ title('Kalender Agenda & Progres');
 state([
     'targetDate' => fn() => now(),
     'selectedAgendaId' => null,
+    'showCompleted' => true,
 ]);
 
-// Computed property untuk menarik data agenda yang dipilih secara reaktif
+// Fungsi internal untuk mengambil data berdasarkan state saat ini
+// Kita melewatkan $targetDate dan $showCompleted sebagai parameter untuk menghindari error $this
+$fetchAgendasForExport = function ($targetDate, $showCompleted) {
+    $user = auth()->user();
+    $allowedUserIds = collect([$user->id]);
+
+    if ($user->parent_id === null) {
+        $subordinateIds = User::where('parent_id', $user->id)->pluck('id');
+        $allowedUserIds = $allowedUserIds->merge($subordinateIds);
+    } else {
+        $teamMemberIds = User::where('parent_id', $user->parent_id)->pluck('id');
+        $allowedUserIds = $allowedUserIds->merge($teamMemberIds)->push($user->parent_id);
+    }
+
+    $statuses = $showCompleted ? ['ongoing', 'completed'] : ['ongoing'];
+
+    return Agenda::whereMonth('deadline', $targetDate->month)->whereYear('deadline', $targetDate->year)->whereIn('status', $statuses)->whereIn('user_id', $allowedUserIds->unique())->with('user')->orderBy('deadline', 'asc')->get();
+};
+
+$exportExcel = function () use ($fetchAgendasForExport) {
+    // Mengambil data dari state melalui context komponen
+    $data = $fetchAgendasForExport($this->targetDate, $this->showCompleted);
+    $filename = 'Agenda_' . $this->targetDate->format('F_Y') . '.xlsx';
+
+    return Excel::download(
+        new class ($data) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings {
+            public function __construct(protected $data) {}
+            public function collection()
+            {
+                return $this->data->map(fn($a) => [$a->deadline->format('d/m/Y H:i'), $a->user->name, $a->title, $a->status]);
+            }
+            public function headings(): array
+            {
+                return ['Deadline', 'PIC', 'Agenda', 'Status'];
+            }
+        },
+        $filename,
+    );
+};
+
+$exportPdf = function () use ($fetchAgendasForExport) {
+    $data = $fetchAgendasForExport($this->targetDate, $this->showCompleted);
+    $pdf = Pdf::loadHTML(
+        view('pdf.agenda-report', [
+            'data' => $data,
+            'month' => $this->targetDate->translatedFormat('F Y'),
+        ])->render(),
+    )->setPaper('a4', 'portrait');
+
+    $filename = 'Agenda_' . $this->targetDate->format('F_Y') . '.pdf';
+    return response()->streamDownload(fn() => print $pdf->output(), $filename);
+};
+
 $selectedAgenda = computed(function () {
     if (!$this->selectedAgendaId) {
         return null;
@@ -23,7 +78,6 @@ $selectedAgenda = computed(function () {
 $nextMonth = function () {
     $this->targetDate = $this->targetDate->addMonth();
 };
-
 $prevMonth = function () {
     $this->targetDate = $this->targetDate->subMonth();
 };
@@ -34,44 +88,36 @@ $showDetail = function ($id) {
 };
 
 $getDays = function () {
-    $start = $this->targetDate->copy()->startOfMonth()->startOfWeek(\Carbon\CarbonInterface::MONDAY);
-    $end = $this->targetDate->copy()->endOfMonth()->endOfWeek(\Carbon\CarbonInterface::SUNDAY);
+    $targetDate = $this->targetDate;
+    $showCompleted = $this->showCompleted;
+
+    $start = $targetDate->copy()->startOfMonth()->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+    $end = $targetDate->copy()->endOfMonth()->endOfWeek(\Carbon\CarbonInterface::SUNDAY);
 
     $user = auth()->user();
-
-    // LOGIKA FILTER AKSES
-    $allowedUserIds = collect([$user->id]); // Selalu bisa melihat diri sendiri
-
+    $allowedUserIds = collect([$user->id]);
     if ($user->parent_id === null) {
-        // Jika dia Manager: Bisa melihat semua bawahannya
-        $subordinateIds = User::where('parent_id', $user->id)->pluck('id');
-        $allowedUserIds = $allowedUserIds->merge($subordinateIds);
+        $allowedUserIds = $allowedUserIds->merge(User::where('parent_id', $user->id)->pluck('id'));
     } else {
-        // Jika dia Bawahan: Bisa melihat rekan tim (bawahan lain dari atasan yang sama)
-        // dan melihat agenda Atasannya sendiri
-        $teamMemberIds = User::where('parent_id', $user->parent_id)->pluck('id');
-        $allowedUserIds = $allowedUserIds->merge($teamMemberIds)->push($user->parent_id);
+        $allowedUserIds = $allowedUserIds->merge(User::where('parent_id', $user->parent_id)->pluck('id'))->push($user->parent_id);
     }
+
+    $statuses = $showCompleted ? ['ongoing', 'completed'] : ['ongoing'];
+    $allAgendas = Agenda::whereMonth('deadline', $targetDate->month)->whereYear('deadline', $targetDate->year)->whereIn('status', $statuses)->whereIn('user_id', $allowedUserIds->unique())->with('user')->get();
 
     $days = [];
     $current = $start->copy();
-
     while ($current <= $end) {
         $days[] = [
             'date' => $current->copy(),
-            'isCurrentMonth' => $current->month === $this->targetDate->month,
+            'isCurrentMonth' => $current->month === $targetDate->month,
             'isToday' => $current->isToday(),
-            'agendas' => Agenda::whereDate('deadline', $current->format('Y-m-d'))
-                ->where('status', 'ongoing')
-                ->whereIn('user_id', $allowedUserIds->unique()) // Filter berdasarkan hak akses
-                ->with('user')
-                ->get(),
+            'agendas' => $allAgendas->filter(fn($a) => $a->deadline->isSameDay($current)),
         ];
         $current->addDay();
     }
     return $days;
 };
-
 ?>
 
 <div class="p-6 lg:p-10 space-y-8 bg-slate-50 dark:bg-slate-950 min-h-screen font-sans transition-colors duration-500">
@@ -82,20 +128,35 @@ $getDays = function () {
                 class="font-black uppercase tracking-tighter italic text-indigo-600 dark:text-indigo-400">
                 {{ $targetDate->translatedFormat('F Y') }}
             </flux:heading>
-            <flux:subheading class="flex items-center gap-2">
-                <flux:icon name="information-circle" variant="mini" class="text-indigo-500" />
-                Filter: Menampilkan agenda tim Anda.
-            </flux:subheading>
+            <div class="flex items-center gap-4">
+                <flux:subheading class="flex items-center gap-2">
+                    <flux:icon name="information-circle" variant="mini" class="text-indigo-500" />
+                    Monitoring agenda tim aktif.
+                </flux:subheading>
+                <div
+                    class="flex items-center gap-2 px-3 py-1 bg-white dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    <span
+                        class="text-[9px] font-black uppercase tracking-widest {{ $showCompleted ? 'text-indigo-600' : 'text-zinc-400' }}">Selesai</span>
+                    <flux:switch wire:model.live="showCompleted" variant="primary" size="sm" />
+                </div>
+            </div>
         </div>
 
-        <div
-            class="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-            <flux:button variant="ghost" icon="chevron-left" wire:click="prevMonth" class="rounded-xl" />
-            <flux:button variant="ghost" wire:click="targetDate = now()"
-                class="text-[10px] font-black uppercase tracking-widest px-4">
-                Hari Ini
-            </flux:button>
-            <flux:button variant="ghost" icon="chevron-right" wire:click="nextMonth" class="rounded-xl" />
+        <div class="flex items-center gap-3">
+            <div
+                class="flex items-center gap-1 bg-white dark:bg-zinc-900 p-1.5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                <flux:button variant="ghost" size="sm" icon="document-text" wire:click="exportExcel"
+                    class="text-emerald-600 dark:text-emerald-400 font-bold">EXCEL</flux:button>
+                <flux:button variant="ghost" size="sm" icon="document-arrow-down" wire:click="exportPdf"
+                    class="text-rose-600 dark:text-rose-400 font-bold">PDF</flux:button>
+            </div>
+            <div
+                class="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+                <flux:button variant="ghost" icon="chevron-left" wire:click="prevMonth" class="rounded-xl" />
+                <flux:button variant="ghost" wire:click="targetDate = now()"
+                    class="text-[10px] font-black uppercase tracking-widest px-4">Hari Ini</flux:button>
+                <flux:button variant="ghost" icon="chevron-right" wire:click="nextMonth" class="rounded-xl" />
+            </div>
         </div>
     </div>
 
@@ -106,47 +167,53 @@ $getDays = function () {
             @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $dayName)
                 <div
                     class="py-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
-                    {{ $dayName }}
-                </div>
+                    {{ $dayName }}</div>
             @endforeach
         </div>
 
         <div class="grid grid-cols-7 gap-px bg-zinc-100 dark:bg-zinc-800">
             @foreach ($this->getDays() as $day)
                 <div
-                    class="bg-white dark:bg-zinc-900 min-h-[140px] p-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 {{ !$day['isCurrentMonth'] ? 'bg-zinc-50/30 dark:bg-zinc-950/20' : '' }}">
-                    <div class="flex justify-start mb-3">
+                    class="bg-white dark:bg-zinc-900 min-h-[180px] p-2 transition-colors {{ !$day['isCurrentMonth'] ? 'bg-zinc-50/30 dark:bg-zinc-950/20' : '' }}">
+                    <div class="flex justify-start mb-2 p-1">
                         <span
                             class="text-xs font-black {{ $day['isToday'] ? 'bg-indigo-600 text-white w-7 h-7 flex items-center justify-center rounded-full shadow-lg shadow-indigo-500/30 ring-4 ring-indigo-50 dark:ring-indigo-900/30' : ($day['isCurrentMonth'] ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-300 dark:text-zinc-700') }}">
                             {{ $day['date']->format('j') }}
                         </span>
                     </div>
 
-                    <div class="space-y-2">
-                        @foreach ($day['agendas'] as $agenda)
-                            <button wire:click="showDetail({{ $agenda->id }})"
-                                class="group w-full text-left p-2.5 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1
-        {{ $agenda->user_id === auth()->id()
-            ? 'bg-indigo-600 border-indigo-700 shadow-lg shadow-indigo-500/20'
-            : 'bg-white dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-700 hover:border-indigo-500 dark:hover:bg-zinc-800' }}">
-
-                                <div class="flex items-center gap-1.5 mb-1.5 overflow-hidden">
-                                    {{-- Indikator Titik --}}
-                                    <div
-                                        class="w-1.5 h-1.5 rounded-full {{ $agenda->user_id === auth()->id() ? 'bg-white' : 'bg-indigo-500' }} {{ $agenda->user_id === auth()->id() ? 'animate-pulse' : '' }}">
-                                    </div>
-
-                                    <span
-                                        class="text-[9px] font-black uppercase italic truncate {{ $agenda->user_id === auth()->id() ? 'text-indigo-100' : 'text-indigo-600 dark:text-indigo-400' }}">
-                                        {{ $agenda->user->name }}
-                                    </span>
-                                </div>
-
+                    <div class="space-y-4 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
+                        @foreach ($day['agendas']->groupBy('user.name') as $userName => $agendas)
+                            <div class="space-y-1.5">
                                 <div
-                                    class="text-[11px] font-bold leading-tight line-clamp-2 {{ $agenda->user_id === auth()->id() ? 'text-white' : 'text-zinc-800 dark:text-zinc-300' }}">
-                                    {{ $agenda->title }}
+                                    class="flex items-center gap-1.5 px-1 sticky top-0 bg-white dark:bg-zinc-900 z-10 py-0.5">
+                                    <div
+                                        class="w-1 h-3 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.5)]">
+                                    </div>
+                                    <span
+                                        class="text-[9px] font-black uppercase italic tracking-wider text-indigo-600 dark:text-indigo-400 truncate">{{ $userName }}</span>
                                 </div>
-                            </button>
+                                <div class="space-y-1 ml-2">
+                                    @foreach ($agendas as $agenda)
+                                        @php
+                                            $isCompleted = $agenda->status === 'completed';
+                                            $isMine = $agenda->user_id === auth()->id();
+                                        @endphp
+                                        <button wire:click="showDetail({{ $agenda->id }})"
+                                            class="group w-full text-left p-2 rounded-xl border transition-all duration-300 ease-out transform hover:-translate-y-0.5 hover:shadow-md focus:outline-none
+                                            {{ $isCompleted ? 'bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-700 opacity-70' : ($isMine ? 'bg-indigo-600 border-indigo-700 text-white' : 'bg-white dark:bg-zinc-800/60 border-zinc-100 dark:border-zinc-700 hover:border-indigo-400') }}
+                                            dark:hover:text-white">
+                                            <div class="flex items-start gap-1.5">
+                                                <div
+                                                    class="text-[10px] font-bold leading-tight transition-all duration-300
+                                                    {{ $isCompleted ? 'text-zinc-400 line-through' : ($isMine ? 'text-white' : 'text-zinc-800 dark:text-zinc-200 group-hover:text-indigo-600 dark:group-hover:text-white') }}">
+                                                    {{ $agenda->title }}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -158,101 +225,25 @@ $getDays = function () {
     <flux:modal name="detail-agenda" class="min-w-[600px] !rounded-[2rem]">
         @if ($this->selectedAgenda)
             <div class="space-y-8 p-2">
-                {{-- Header Modal --}}
-                <div class="relative overflow-hidden p-6 rounded-[2rem] bg-indigo-600 text-white">
+                <div
+                    class="relative overflow-hidden p-6 rounded-[2rem] {{ $this->selectedAgenda->status === 'completed' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100' : 'bg-indigo-600 text-white' }}">
                     <div class="relative z-10 flex justify-between items-start">
                         <div class="space-y-2 max-w-[70%]">
-                            <flux:badge color="white" size="sm"
-                                class="!text-indigo-600 font-black uppercase italic rounded-lg">
-                                {{ $this->selectedAgenda->status }}
-                            </flux:badge>
+                            <flux:badge color="{{ $this->selectedAgenda->status === 'completed' ? 'zinc' : 'white' }}"
+                                size="sm" class="font-black uppercase italic rounded-lg">
+                                {{ $this->selectedAgenda->status }}</flux:badge>
                             <h2 class="text-2xl font-black uppercase italic tracking-tighter leading-none">
-                                {{ $this->selectedAgenda->title }}
-                            </h2>
-                            <p class="text-indigo-100 text-xs font-medium">PIC: {{ $this->selectedAgenda->user->name }}
-                            </p>
+                                {{ $this->selectedAgenda->title }}</h2>
+                            <p class="text-[10px] opacity-70 font-medium uppercase tracking-widest">PIC:
+                                {{ $this->selectedAgenda->user->name }}</p>
                         </div>
-                        <flux:icon name="calendar-days" class="w-12 h-12 text-indigo-400 opacity-50" />
+                        <flux:icon name="calendar-days" class="w-12 h-12 opacity-20" />
                     </div>
                 </div>
-
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="space-y-1">
-                        <label
-                            class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1 italic">Tenggat
-                            Waktu</label>
-                        <div
-                            class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-                            <flux:icon name="clock" variant="mini" class="text-indigo-500" />
-                            <span
-                                class="text-sm font-bold">{{ $this->selectedAgenda->deadline->translatedFormat('d F Y, H:i') }}</span>
-                        </div>
-                    </div>
-                    <div class="space-y-1">
-                        <label
-                            class="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1 italic">Penanggung
-                            Jawab</label>
-                        <div
-                            class="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
-                            <flux:icon name="user-circle" variant="mini" class="text-indigo-500" />
-                            <span class="text-sm font-bold">{{ $this->selectedAgenda->approver->name ?? 'N/A' }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Progres Tahapan --}}
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 italic">Tracking
-                            Progres Tahapan</span>
-                        <span
-                            class="text-[10px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md">
-                            {{ $this->selectedAgenda->steps->where('is_completed', true)->count() }}/{{ $this->selectedAgenda->steps->count() }}
-                            Selesai
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-2">
-                        @forelse($this->selectedAgenda->steps as $step)
-                            <div
-                                class="group flex items-center gap-4 p-3 rounded-xl border {{ $step->is_completed ? 'bg-zinc-50/50 dark:bg-zinc-800/30 border-zinc-100 dark:border-zinc-800' : 'bg-transparent border-zinc-200 dark:border-zinc-800' }}">
-                                <div class="flex-shrink-0">
-                                    @if ($step->is_completed)
-                                        <div class="w-6 h-6 flex items-center justify-center bg-indigo-600 rounded-lg">
-                                            <flux:icon name="check" variant="mini" class="text-white w-4 h-4" />
-                                        </div>
-                                    @else
-                                        <div
-                                            class="w-6 h-6 rounded-lg border-2 border-zinc-300 dark:border-zinc-700 bg-transparent">
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="flex flex-col">
-                                    <span
-                                        class="text-sm font-bold {{ $step->is_completed ? 'text-zinc-400 line-through decoration-indigo-500/30' : 'text-zinc-800 dark:text-zinc-100' }}">
-                                        {{ $step->step_name }}
-                                    </span>
-                                    @if ($step->description)
-                                        <span
-                                            class="text-[10px] text-zinc-500 font-medium leading-tight">{{ $step->description }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @empty
-                            <div
-                                class="text-center py-10 border-2 border-dashed border-zinc-100 dark:border-zinc-800 rounded-[2rem]">
-                                <p class="text-[10px] font-black uppercase tracking-widest text-zinc-300">Belum ada
-                                    tahapan kerja</p>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-center pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    <p class="text-[9px] text-zinc-400 italic font-medium">Sistem Pemantauan Agenda v2.0</p>
+                <div class="flex justify-end pt-4">
                     <flux:modal.close>
                         <flux:button variant="filled" color="indigo"
-                            class="!rounded-xl font-black uppercase text-[10px] italic tracking-widest">Selesai
+                            class="!rounded-xl font-black uppercase text-[10px] italic tracking-widest">Tutup
                         </flux:button>
                     </flux:modal.close>
                 </div>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Laporan Agenda - Marison Regency</title>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+            font-size: 11px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .header-container {
+            border-bottom: 2px solid #006688;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            height: 50px;
+            width: auto;
+            float: left;
+        }
+
+        .company-info {
+            float: right;
+            text-align: right;
+        }
+
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #006688;
+        }
+
+        .clear {
+            clear: both;
+        }
+
+        .report-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-title h2 {
+            margin: 0;
+            text-decoration: underline;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background-color: #006688;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 9px;
+            border: 1px solid #004466;
+        }
+
+        td {
+            border: 1px solid #eee;
+            padding: 8px;
+            vertical-align: top;
+        }
+
+        .status-badge {
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .bg-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .bg-ongoing {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .signature-wrapper {
+            margin-top: 50px;
+            width: 100%;
+        }
+
+        .signature-box {
+            float: right;
+            width: 220px;
+            text-align: center;
+        }
+
+        .signature-space {
+            height: 60px;
+        }
+
+        .signature-name {
+            font-weight: bold;
+            text-decoration: underline;
+            text-transform: uppercase;
+            margin-bottom: 0;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            font-size: 8px;
+            color: #aaa;
+            width: 100%;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-container">
+        @if (file_exists(public_path('images/logo.png')))
+            <img src="{{ public_path('images/logo.png') }}" class="logo">
+        @endif
+        <div class="company-info">
+            <div class="company-name">MARISON REGENCY GROUP</div>
+            <div style="font-size: 8px; color: #666;">
+                DEVELOPER - INVESTMENT - CONSULTANT<br>
+                Laporan Digital Sistem Monitoring Agenda
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="report-title">
+        <h2>REKAPITULASI AGENDA KERJA</h2>
+        <p>Periode: {{ $month }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">No</th>
+                <th width="15%">Tanggal</th>
+                <th width="20%">PIC</th>
+                <th width="40%">Agenda / Deskripsi</th>
+                <th width="20%">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($data as $index => $agenda)
+                <tr>
+                    <td align="center">{{ $index + 1 }}</td>
+                    <td>{{ $agenda->deadline->translatedFormat('d F Y') }}</td>
+                    <td><strong>{{ $agenda->user->name }}</strong></td>
+                    <td>
+                        <strong>{{ $agenda->title }}</strong><br>
+                        <small style="color: #666;">{{ Str::limit($agenda->description, 100) }}</small>
+                    </td>
+                    <td align="center">
+                        <span
+                            class="status-badge {{ $agenda->status === 'completed' ? 'bg-completed' : 'bg-ongoing' }}">
+                            {{ $agenda->status }}
+                        </span>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="signature-wrapper">
+        <div class="signature-box">
+            <p>Dicetak pada, {{ now()->translatedFormat('d F Y') }}</p>
+            <p style="margin-top: -10px;">Mengetahui/Menyetujui,</p>
+            <div class="signature-space"></div>
+            <p class="signature-name">__________________________</p>
+            <p style="margin-top: 2px; font-size: 9px;">Pimpinan / Atasan</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="footer">
+        Generated by Marison Regency System | {{ now()->format('H:i:s') }}
+    </div>
+</body>
+
+</html>

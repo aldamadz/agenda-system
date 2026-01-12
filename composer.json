@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "asantibanez/livewire-calendar": "^2.3",
+        "barryvdh/laravel-dompdf": "^3.1",
         "blade-ui-kit/blade-heroicons": "^2.6",
         "jantinnerezo/livewire-alert": "^4.0",
         "laravel/fortify": "^1.30",

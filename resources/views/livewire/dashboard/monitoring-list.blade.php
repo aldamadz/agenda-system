@@ -125,99 +125,166 @@ $rejectAgenda = function ($id) {
         </div>
     </div>
 
-    {{-- Agenda Cards --}}
+    {{-- Agenda Cards Container --}}
     <div class="grid grid-cols-1 gap-8">
         @foreach ($this->monitoringAgendas as $agenda)
-            @php $isAllStepsDone = $agenda->steps->every(fn($step) => $step->is_completed); @endphp
+            @php
+                $isAllStepsDone = $agenda->steps->every(fn($step) => $step->is_completed);
+                $isOverdue = $agenda->deadline->isPast() && !$isAllStepsDone;
+            @endphp
 
             <div
                 class="bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 border border-slate-200 dark:border-white/10 shadow-xl relative group">
+
+                {{-- Efek Pulse Jika Semua Tahap Selesai --}}
                 @if ($isAllStepsDone)
                     <div class="absolute inset-0 bg-emerald-500/5 pointer-events-none animate-pulse"></div>
                 @endif
 
-                {{-- Card Header --}}
-                <div
-                    class="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-white/10 relative z-10">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-12 h-12 rounded-2xl transition-all duration-500 {{ $isAllStepsDone ? 'bg-emerald-500 text-white rotate-6' : 'bg-indigo-500/10 text-indigo-500' }} flex items-center justify-center shadow-lg">
-                            @if ($isAllStepsDone)
-                                <flux:icon.check-badge variant="solid" class="w-7 h-7" />
-                            @else
-                                <flux:icon.clipboard-document-list variant="solid" class="w-7 h-7" />
-                            @endif
-                        </div>
-                        <div>
-                            <h4 class="font-black text-lg text-slate-900 dark:text-white leading-tight italic">
-                                {{ $agenda->title }}</h4>
+                {{-- 1. CARD HEADER: Info Utama Agenda --}}
+                <div class="p-8 border-b border-slate-100 dark:border-white/10 relative z-10">
+                    <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+                        <div class="flex items-start gap-5 flex-1">
+                            {{-- Icon Status --}}
                             <div
-                                class="flex items-center gap-2 mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                <span>PIC: {{ $agenda->user->name }}</span>
-                                <span class="text-indigo-500 transition-all">•
-                                    {{ $agenda->steps->where('is_completed', true)->count() }} /
-                                    {{ $agenda->steps->count() }} TAHAP</span>
+                                class="w-14 h-14 shrink-0 rounded-2xl transition-all duration-500 {{ $isAllStepsDone ? 'bg-emerald-500 text-white rotate-6' : 'bg-indigo-600 text-white' }} flex items-center justify-center shadow-lg">
+                                @if ($isAllStepsDone)
+                                    <flux:icon.check-badge variant="solid" class="w-8 h-8" />
+                                @else
+                                    <flux:icon.clipboard-document-list variant="solid" class="w-8 h-8" />
+                                @endif
+                            </div>
+
+                            {{-- Konten Judul & Deskripsi --}}
+                            <div class="space-y-3 flex-1">
+                                <div>
+                                    <h4
+                                        class="font-black text-xl text-slate-900 dark:text-white leading-none italic uppercase tracking-tight">
+                                        {{ $agenda->title }}
+                                    </h4>
+
+                                    {{-- Deskripsi Agenda --}}
+                                    @if ($agenda->description)
+                                        <p
+                                            class="mt-2 text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-4xl line-clamp-2">
+                                            {{ $agenda->description }}
+                                        </p>
+                                    @endif
+                                </div>
+
+                                {{-- Meta Info Row --}}
+                                <div
+                                    class="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 text-[10px] font-black uppercase tracking-[0.15em]">
+                                    <span class="flex items-center gap-1.5 text-slate-400">
+                                        <flux:icon.user variant="micro" class="text-indigo-500" />
+                                        PIC: {{ $agenda->user->name }}
+                                    </span>
+
+                                    <div
+                                        class="flex items-center gap-1.5 {{ $isOverdue ? 'text-red-500 animate-pulse' : 'text-amber-500' }}">
+                                        <flux:icon.calendar-days variant="micro" />
+                                        <span>Deadline: {{ $agenda->deadline->translatedFormat('d F Y') }}</span>
+                                    </div>
+
+                                    <span class="text-indigo-500 flex items-center gap-1.5">
+                                        <flux:icon.list-bullet variant="micro" />
+                                        {{ $agenda->steps->where('is_completed', true)->count() }} /
+                                        {{ $agenda->steps->count() }} TAHAP SELESAI
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center gap-3">
-                        @if ($isAllStepsDone)
-                            <flux:button size="sm" color="emerald" variant="primary"
-                                class="!rounded-xl font-bold animate-bounce"
-                                wire:click="completeAgenda({{ $agenda->id }})" wire:confirm="Arsipkan agenda ini?">
-                                Tutup & Arsipkan
-                            </flux:button>
-                        @endif
-                        @if (auth()->user()->parent_id === null)
-                            <flux:button variant="ghost" size="sm" icon="trash" color="red"
-                                class="!rounded-xl" wire:click="rejectAgenda({{ $agenda->id }})"
-                                wire:confirm="Hapus seluruh agenda ini?" />
-                        @endif
+                        {{-- Tombol Aksi (Arsipkan / Hapus) --}}
+                        <div class="flex items-center gap-3 shrink-0 self-center md:self-start">
+                            @if ($isAllStepsDone)
+                                <flux:button size="sm" color="emerald" variant="primary"
+                                    class="!rounded-xl font-black uppercase italic tracking-widest animate-bounce shadow-lg shadow-emerald-500/20"
+                                    wire:click="completeAgenda({{ $agenda->id }})"
+                                    wire:confirm="Arsipkan agenda ini?">
+                                    Arsipkan Agenda
+                                </flux:button>
+                            @endif
+
+                            @if (auth()->user()->parent_id === null)
+                                <flux:button variant="ghost" size="sm" icon="trash" color="red"
+                                    class="!rounded-xl border border-red-500/10 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                    wire:click="rejectAgenda({{ $agenda->id }})"
+                                    wire:confirm="Hapus seluruh agenda ini?" />
+                            @endif
+                        </div>
                     </div>
                 </div>
 
-                {{-- Steps Grid --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10">
+                {{-- 2. STEPS GRID: Daftar Tahapan Pekerjaan --}}
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10 bg-slate-50/30 dark:bg-transparent">
                     @foreach ($agenda->steps as $step)
                         <div
-                            class="p-6 flex flex-col justify-between min-h-[140px] border-b md:border-b-0 md:border-r border-slate-100 dark:border-white/5 last:border-r-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-300">
+                            class="p-6 flex flex-col justify-between min-h-[160px] border-b md:border-b-0 md:border-r border-slate-100 dark:border-white/5 last:border-r-0 hover:bg-white dark:hover:bg-white/5 transition-all duration-300">
 
                             <div class="space-y-4">
-                                <div class="flex justify-between items-start gap-3">
+                                <div class="flex justify-between items-start gap-4">
                                     <p
                                         class="text-sm leading-tight transition-all duration-500 {{ $step->is_completed ? 'text-slate-400 line-through opacity-60' : 'text-slate-800 dark:text-white font-bold' }}">
                                         {{ $step->step_name }}
                                     </p>
+
+                                    {{-- Checkbox Custom --}}
                                     <input type="checkbox" {{ $step->is_completed ? 'checked' : '' }}
                                         wire:click="clickStep({{ $step->id }})"
-                                        class="w-5 h-5 rounded-lg border-slate-300 dark:border-white/10 text-indigo-600 cursor-pointer transition-all duration-300 transform active:scale-125">
+                                        class="w-5 h-5 rounded-lg border-slate-300 dark:border-white/10 text-indigo-600 cursor-pointer transition-all duration-300 transform active:scale-125 focus:ring-indigo-500">
                                 </div>
 
+                                {{-- Bukti Kerja / Lampiran --}}
                                 @if ($step->attachment)
                                     <a href="{{ asset('storage/' . $step->attachment) }}" target="_blank"
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase hover:bg-indigo-500 hover:text-white transition-colors">
-                                        <flux:icon.paper-clip variant="micro" /> Bukti Kerja
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all duration-300">
+                                        <flux:icon.paper-clip variant="micro" /> Lihat Bukti
                                     </a>
                                 @endif
                             </div>
 
+                            {{-- Footer Tahapan: Jam & Status --}}
                             <div
-                                class="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] font-bold text-slate-400">
-                                <div class="flex items-center gap-2">
+                                class="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-tighter">
+                                <div class="flex items-center gap-2 text-slate-400">
                                     <flux:icon.clock variant="micro" />
-                                    <span>{{ $step->deadline?->format('H:i') ?? '--:--' }}</span>
+                                    <span>Target: {{ $step->deadline?->format('H:i') ?? '--:--' }}</span>
                                 </div>
+
                                 @if ($step->is_completed)
-                                    <span
-                                        class="text-emerald-500 font-black uppercase tracking-tighter animate-pulse">Selesai</span>
+                                    <div class="flex items-center gap-1 text-emerald-500 italic">
+                                        <flux:icon.check-circle variant="micro" />
+                                        <span>Selesai</span>
+                                    </div>
+                                @else
+                                    <span class="text-slate-300 dark:text-slate-600">Pending</span>
                                 @endif
                             </div>
                         </div>
                     @endforeach
+
+                    {{-- Empty State Jika Steps Kosong --}}
+                    @if ($agenda->steps->isEmpty())
+                        <div class="col-span-full py-10 text-center">
+                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 italic">Belum
+                                ada rincian tahapan</span>
+                        </div>
+                    @endif
                 </div>
             </div>
         @endforeach
+
+        {{-- Empty State Jika Tidak Ada Agenda --}}
+        @if ($this->monitoringAgendas->isEmpty())
+            <div
+                class="py-20 text-center bg-white dark:bg-white/5 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-white/10">
+                <flux:icon.clipboard-document-list class="w-12 h-12 mx-auto text-slate-300 mb-4" />
+                <h3 class="text-lg font-black uppercase italic text-slate-400">Tidak Ada Agenda Aktif</h3>
+                <p class="text-sm text-slate-400">Semua pekerjaan telah selesai atau belum dibuat.</p>
+            </div>
+        @endif
     </div>
 
     {{-- Modal Konfirmasi --}}
