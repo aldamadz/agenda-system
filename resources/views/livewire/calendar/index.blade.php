@@ -14,6 +14,7 @@ state([
     'targetDate' => fn() => now()->startOfMonth()->toDateTimeString(),
     'selectedAgendaId' => null,
     'filterUserId' => '',
+    'search' => '',
 ]);
 
 $allowedUserIds = computed(function () {
@@ -44,6 +45,13 @@ $agendas = computed(function () {
     } else {
         $query->whereIn('user_id', $this->allowedUserIds);
     }
+    if ($this->search) {
+        $query->where(function ($q) {
+            $q->where('title', 'like', '%' . $this->search . '%')->orWhereHas('user', function ($qu) {
+                $qu->where('name', 'like', '%' . $this->search . '%');
+            });
+        });
+    }
     return $query->get();
 });
 
@@ -65,6 +73,7 @@ $calendarDays = computed(function () {
             }
             return $dateRef->greaterThanOrEqualTo($createdAt) && $dateRef->lessThanOrEqualTo($today);
         });
+
         $days[] = [
             'date' => $current->copy(),
             'isCurrentMonth' => $current->month === $currentDate->month,
@@ -80,11 +89,9 @@ $selectedAgenda = computed(fn() => $this->selectedAgendaId ? Agenda::with(['user
 
 $nextMonth = fn() => ($this->targetDate = Carbon::parse($this->targetDate)->addMonth()->toDateTimeString());
 $prevMonth = fn() => ($this->targetDate = Carbon::parse($this->targetDate)->subMonth()->toDateTimeString());
+$goToMonth = fn($val) => ($this->targetDate = Carbon::parse($val . '-01')->toDateTimeString());
 $showDetail = fn($id) => ($this->selectedAgendaId = $id) && $this->dispatch('modal-show', name: 'detail-agenda');
 
-/**
- * EXPORT PDF DENGAN LOGIKA TELAT AKURAT (MENGGUNAKAN completed_at)
- */
 $exportPdf = function () {
     Carbon::setLocale('id');
     $currentDate = Carbon::parse($this->targetDate);
@@ -121,20 +128,13 @@ $exportPdf = function () {
                 $deadline = $agenda->deadline ? Carbon::parse($agenda->deadline) : null;
 
                 $clonedAgenda->jam_dibuat = $jamBuat->format('H:i');
-
-                // Limit Cerdas (Tampil tanggal jika beda hari)
-                if ($deadline) {
-                    $clonedAgenda->jam_deadline = $deadline->isSameDay($dateRef) ? $deadline->format('H:i') : $deadline->translatedFormat('d M H:i');
-                } else {
-                    $clonedAgenda->jam_deadline = '-';
-                }
-
+                $clonedAgenda->jam_deadline = $deadline ? ($deadline->isSameDay($dateRef) ? $deadline->format('H:i') : $deadline->translatedFormat('d M H:i')) : '-';
                 $clonedAgenda->jam_selesai = $agenda->status === 'completed' ? $jamUpdate->format('H:i') : null;
-
-                // Status Harian
                 $clonedAgenda->display_status = $agenda->status === 'completed' && $dateRef->greaterThanOrEqualTo($jamUpdate->copy()->startOfDay()) ? 'completed' : 'ongoing';
 
-                // HITUNG TELAT PER STEP
+                // Logika Telat Agenda Utama
+                $clonedAgenda->is_agenda_late = $agenda->status === 'completed' && $deadline && $jamUpdate->gt($deadline);
+
                 $clonedAgenda->display_steps = $agenda->steps->map(function ($step, $index) use ($dateRef, $agenda, $jamBuat) {
                     $stepDoneAt = $step->completed_at ? Carbon::parse($step->completed_at) : null;
                     $isDoneOnThisDate = $stepDoneAt && $dateRef->greaterThanOrEqualTo($stepDoneAt->copy()->startOfDay());
@@ -142,18 +142,9 @@ $exportPdf = function () {
                     $isOverdue = false;
                     $overdueLabel = '';
 
-                    if ($stepDoneAt && $step->duration) {
-                        // Tentukan Waktu Mulai (Step 1 dari jam buat, Step 2+ dari step sebelumnya)
-                        if ($index === 0) {
-                            $startTime = $jamBuat;
-                        } else {
-                            $prevStep = $agenda->steps[$index - 1];
-                            $startTime = $prevStep->completed_at ? Carbon::parse($prevStep->completed_at) : Carbon::parse($prevStep->updated_at);
-                        }
-
+                    if ($stepDoneAt) {
+                        $startTime = $index === 0 ? $jamBuat : Carbon::parse($agenda->steps[$index - 1]->completed_at ?? $agenda->steps[$index - 1]->updated_at);
                         $actualMinutes = $startTime->diffInMinutes($stepDoneAt);
-
-                        // Konversi limit (misal "1j 30m" -> 90)
                         $limitMinutes = 0;
                         if (preg_match('/(\d+)j/', $step->duration, $h)) {
                             $limitMinutes += $h[1] * 60;
@@ -162,12 +153,10 @@ $exportPdf = function () {
                             $limitMinutes += $m[1];
                         }
 
-                        if ($limitMinutes > 0 && $actualMinutes > $limitMinutes) {
+                        if ($actualMinutes > $limitMinutes) {
                             $isOverdue = true;
                             $diff = $actualMinutes - $limitMinutes;
-                            $h_telat = floor($diff / 60);
-                            $m_telat = $diff % 60;
-                            $overdueLabel = ($h_telat > 0 ? "{$h_telat}j " : '') . ($m_telat > 0 ? "{$m_telat}m" : '');
+                            $overdueLabel = floor($diff / 60) . 'j ' . $diff % 60 . 'm';
                         }
                     }
 
@@ -180,24 +169,18 @@ $exportPdf = function () {
                         'overdue_label' => $overdueLabel,
                     ];
                 });
-
                 $reportData->push($clonedAgenda);
             }
         }
     }
 
-    $pdf = Pdf::loadView('pdf.agenda-report', [
-        'data' => $reportData,
-        'month' => $currentDate->translatedFormat('F Y'),
-        'filterInfo' => $filterInfo,
-    ]);
-
+    $pdf = Pdf::loadView('pdf.agenda-report', ['data' => $reportData, 'month' => $currentDate->translatedFormat('F Y'), 'filterInfo' => $filterInfo]);
     return response()->streamDownload(fn() => print $pdf->output(), 'Laporan_Agenda_' . $currentDate->format('M_Y') . '.pdf');
 };
 ?>
 
-{{-- UI Blade Tetap Sama Seperti Sebelumnya --}}
 <div class="p-6 lg:p-10 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen">
+    {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div class="flex flex-col md:flex-row md:items-center gap-6">
             <div>
@@ -207,30 +190,50 @@ $exportPdf = function () {
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Monitoring Agenda Kerja
                 </p>
             </div>
-            @if (auth()->user()->parent_id === null)
+
+            <div class="flex flex-wrap items-center gap-3">
+                @if (auth()->user()->parent_id === null)
+                    <div class="w-full md:w-56">
+                        <flux:select wire:model.live="filterUserId" placeholder="Pilih Anggota Tim">
+                            <flux:select.option value="">Semua Anggota</flux:select.option>
+                            @foreach ($this->subordinates as $sub)
+                                <flux:select.option value="{{ $sub->id }}">{{ $sub->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    </div>
+                @endif
                 <div class="w-full md:w-64">
-                    <flux:select wire:model.live="filterUserId" placeholder="Pilih Anggota Tim...">
-                        <flux:select.option value="">Semua Anggota Tim</flux:select.option>
-                        @foreach ($this->subordinates as $sub)
-                            <flux:select.option value="{{ $sub->id }}">{{ $sub->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
+                    <flux:input wire:model.live.debounce.500ms="search" icon="magnifying-glass"
+                        placeholder="Cari agenda atau PIC..." />
                 </div>
-            @endif
+            </div>
         </div>
+
         <div class="flex items-center gap-3">
             <flux:button variant="ghost" size="sm" icon="printer" wire:click="exportPdf"
                 class="text-red-600 font-bold uppercase">Cetak PDF</flux:button>
             <div
                 class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 shadow-sm">
                 <flux:button variant="ghost" icon="chevron-left" wire:click="prevMonth" size="sm" />
-                <flux:button variant="ghost" wire:click="$set('targetDate', '{{ now()->toDateTimeString() }}')"
-                    class="text-[10px] font-black uppercase px-4">Hari Ini</flux:button>
+                <div class="relative flex items-center group">
+                    <flux:button variant="ghost" wire:click="$set('targetDate', '{{ now()->toDateTimeString() }}')"
+                        class="text-[10px] font-black uppercase px-4 border-r border-slate-100 rounded-none">Hari Ini
+                    </flux:button>
+                    <button onclick="document.getElementById('manualMonthPicker').showPicker()"
+                        class="px-2 hover:bg-slate-50 transition-colors rounded-r-xl">
+                        <flux:icon name="calendar" variant="mini"
+                            class="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
+                    </button>
+                    <input type="month" id="manualMonthPicker" class="absolute inset-0 opacity-0 -z-10 cursor-pointer"
+                        wire:change="goToMonth($event.target.value)"
+                        value="{{ Carbon::parse($targetDate)->format('Y-m') }}">
+                </div>
                 <flux:button variant="ghost" icon="chevron-right" wire:click="nextMonth" size="sm" />
             </div>
         </div>
     </div>
 
+    {{-- Kalender Grid --}}
     <div class="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 overflow-hidden shadow-2xl">
         <div
             class="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100 font-black uppercase text-[10px] text-slate-400">
@@ -253,19 +256,23 @@ $exportPdf = function () {
                             @php
                                 $totalSteps = $agenda->steps->count();
                                 $currentRef = $day['date']->startOfDay();
-                                if ($totalSteps > 0) {
-                                    $completedSoFar = $agenda->steps
-                                        ->filter(function ($s) use ($currentRef) {
-                                            $doneAt = $s->completed_at
-                                                ? Carbon::parse($s->completed_at)->startOfDay()
-                                                : null;
-                                            return $doneAt && $doneAt->lessThanOrEqualTo($currentRef);
-                                        })
-                                        ->count();
-                                    $percent = round(($completedSoFar / $totalSteps) * 100);
-                                } else {
-                                    $percent = $agenda->status === 'completed' ? 100 : 0;
-                                }
+                                $doneCount =
+                                    $totalSteps > 0
+                                        ? $agenda->steps
+                                            ->filter(
+                                                fn($s) => $s->completed_at &&
+                                                    Carbon::parse($s->completed_at)
+                                                        ->startOfDay()
+                                                        ->lessThanOrEqualTo($currentRef),
+                                            )
+                                            ->count()
+                                        : 0;
+                                $percent =
+                                    $totalSteps > 0
+                                        ? round(($doneCount / $totalSteps) * 100)
+                                        : ($agenda->status === 'completed'
+                                            ? 100
+                                            : 0);
                                 $isFullyDone = $agenda->status === 'completed' && $percent == 100;
                             @endphp
                             <button wire:click="showDetail({{ $agenda->id }})"
@@ -278,9 +285,8 @@ $exportPdf = function () {
                                         {{ $percent }}%</div>
                                 </div>
                                 <div
-                                    class="text-[9px] font-black leading-tight {{ $percent == 100 ? 'line-through opacity-50' : '' }}">
-                                    {{ Str::limit($agenda->title, 25) }}
-                                </div>
+                                    class="text-[9px] font-black leading-tight {{ $isFullyDone ? 'line-through opacity-50' : '' }}">
+                                    {{ Str::limit($agenda->title, 25) }}</div>
                             </button>
                         @endforeach
                     </div>
@@ -289,6 +295,7 @@ $exportPdf = function () {
         </div>
     </div>
 
+    {{-- Modal Detail --}}
     <flux:modal name="detail-agenda" class="min-w-[450px] md:min-w-[600px] !rounded-[3rem]">
         @if ($this->selectedAgenda)
             <div class="space-y-6">

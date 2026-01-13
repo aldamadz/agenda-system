@@ -15,28 +15,54 @@
             margin: 1cm;
         }
 
-        .header {
-            text-align: center;
+        /* Header Styling */
+        .header-container {
+            width: 100%;
+            border: 2px solid #1e3a8a;
+            /* Biru Gelap sesuai Logo */
+            padding: 10px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #4f46e5;
-            padding-bottom: 10px;
         }
 
-        .header h1 {
+        .header-container table {
+            border: none;
+            width: 100%;
+        }
+
+        .logo-box {
+            width: 180px;
+            /* Diperlebar untuk menampung logo horizontal */
+            vertical-align: middle;
+            border-right: 1px solid #e2e8f0;
+            padding-right: 15px;
+        }
+
+        .title-box {
+            text-align: left;
+            padding-left: 15px;
+            vertical-align: middle;
+        }
+
+        .title-box h1 {
             text-transform: uppercase;
-            font-style: italic;
-            color: #4f46e5;
+            color: #111827;
             margin: 0;
             font-size: 18px;
+            font-weight: 800;
         }
 
-        .header p {
+        .title-box p {
             margin: 5px 0 0;
-            font-size: 9px;
-            font-weight: bold;
-            color: #64748b;
+            font-size: 10px;
+            color: #4b5563;
         }
 
+        .highlight-text {
+            color: #4f46e5;
+            font-weight: bold;
+        }
+
+        /* Table Styling */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -44,26 +70,29 @@
         }
 
         th {
-            background-color: #f8fafc;
-            color: #475569;
+            background-color: #cbd5e1;
+            /* Abu-abu header sesuai gambar */
+            color: #1e293b;
             font-weight: bold;
-            text-transform: uppercase;
-            font-size: 8px;
+            text-transform: capitalize;
+            font-size: 10px;
             padding: 8px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #94a3b8;
+            text-align: left;
         }
 
         td {
-            padding: 6px;
-            border: 1px solid #e2e8f0;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
             vertical-align: top;
             word-wrap: break-word;
         }
 
         .date-row {
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             font-weight: bold;
-            font-size: 9px;
+            font-size: 10px;
+            color: #1e3a8a;
         }
 
         .weekend {
@@ -71,73 +100,86 @@
             color: #e11d48;
         }
 
+        /* Status & Step Colors */
         .text-green {
             color: #16a34a;
+            font-weight: bold;
         }
 
         .text-red {
             color: #e11d48;
+            font-weight: bold;
         }
 
         .text-blue {
             color: #2563eb;
+            font-weight: bold;
         }
 
         .text-muted {
-            color: #94a3b8;
+            color: #64748b;
         }
 
         .step-container {
-            margin-bottom: 4px;
-            padding: 3px;
-            border-radius: 3px;
+            margin-bottom: 5px;
+            padding: 4px;
+            border-bottom: 1px dotted #e2e8f0;
         }
 
         .overdue-bg {
-            background-color: #fff1f2;
-            border-left: 3px solid #e11d48;
+            background-color: #fef2f2;
+            border-left: 3px solid #ef4444;
         }
 
         .symbol {
-            font-size: 11px;
+            font-size: 12px;
             display: inline-block;
-            width: 12px;
+            width: 15px;
         }
 
-        .duration-tag {
-            font-size: 7px;
-            font-weight: bold;
-            margin-left: 4px;
-        }
-
+        /* Footer Styling */
         .footer {
-            margin-top: 20px;
+            position: fixed;
+            bottom: -0.5cm;
+            left: 0;
+            right: 0;
             font-size: 8px;
-            text-align: right;
             color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 5px;
         }
 
-        .time-col {
-            font-size: 7.5px;
-            text-align: center;
-            line-height: 1.2;
+        .time-label {
+            font-size: 9px;
+            color: #64748b;
+            font-weight: normal;
         }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <h1>Laporan Monitoring Agenda</h1>
-        <p>Periode: {{ $month }} | PIC: {{ $filterInfo }}</p>
+    <div class="header-container">
+        <table>
+            <tr>
+                <td class="logo-box" style="border:none; border-right: 1px solid #e2e8f0;">
+                    <img src="{{ public_path('images/logo.png') }}" width="160">
+                </td>
+                <td class="title-box" style="border:none;">
+                    <h1>Laporan Monitoring Agenda</h1>
+                    <p>Periode : <span class="highlight-text">{{ $month }}</span> | PIC : <span
+                            class="highlight-text">{{ $filterInfo }}</span></p>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th width="15%">Waktu</th>
-                <th width="20%">PIC & Agenda</th>
-                <th width="45%">Tahapan & Durasi</th>
-                <th width="20%">Status</th>
+                <th width="18%">Waktu / PIC</th>
+                <th width="25%">Agenda Kerja</th>
+                <th width="37%">Tahapan & Durasi</th>
+                <th width="20%">Status Akhir</th>
             </tr>
         </thead>
         <tbody>
@@ -145,7 +187,8 @@
             @foreach ($data as $item)
                 @if ($currentDate !== $item->display_date)
                     <tr class="date-row {{ \Carbon\Carbon::parse($item->display_date)->isWeekend() ? 'weekend' : '' }}">
-                        <td colspan="4">{{ \Carbon\Carbon::parse($item->display_date)->translatedFormat('l, d F Y') }}
+                        <td colspan="4">
+                            {{ \Carbon\Carbon::parse($item->display_date)->translatedFormat('l, d F Y') }}
                         </td>
                     </tr>
                     @php $currentDate = $item->display_date; @endphp
@@ -153,68 +196,77 @@
 
                 @if ($item->type === 'agenda')
                     <tr>
-                        <td class="time-col">
-                            <div style="color: #64748b;">Mulai:</div>
-                            <div style="font-weight: bold; margin-bottom: 5px;">{{ $item->jam_dibuat }}</div>
-                            <div style="color: #64748b;">Limit:</div>
-                            <div
-                                style="font-weight: bold; color: {{ str_contains($item->jam_deadline, ' ') ? '#e11d48' : '#333' }};">
-                                {{ $item->jam_deadline }}
+                        <td>
+                            <div class="time-label">PIC:</div>
+                            <div style="font-weight: bold; color: #1e3a8a; margin-bottom: 5px;">{{ $item->user->name }}
+                            </div>
+                            <div class="time-label">Mulai: <b>{{ $item->jam_dibuat }}</b></div>
+                            <div class="time-label">Limit: <b
+                                    style="color: {{ str_contains($item->jam_deadline, ' ') ? '#e11d48' : '#333' }};">{{ $item->jam_deadline }}</b>
                             </div>
                         </td>
                         <td>
-                            <div style="font-weight: bold; color: #4f46e5;">{{ $item->user->name }}</div>
-                            <div style="font-size: 9px; margin-top: 2px;">{{ $item->title }}</div>
+                            <div style="font-weight: bold; font-size: 10px;">{{ $item->title }}</div>
                         </td>
                         <td>
                             @foreach ($item->display_steps as $step)
                                 <div class="step-container {{ $step->is_overdue ? 'overdue-bg' : '' }}">
                                     <span class="symbol">
                                         @if ($step->is_completed)
-                                            <span class="text-green">&#10004;</span>
+                                            <span class="text-green">✔</span>
                                         @else
-                                            <span class="text-muted">&#9675;</span>
+                                            <span class="text-muted">○</span>
                                         @endif
                                     </span>
-                                    <span
-                                        style="{{ $step->is_completed ? 'color: #64748b;' : 'font-weight: bold;' }}">{{ $step->step_name }}</span>
+                                    <span style="{{ $step->is_completed ? 'color: #64748b;' : 'font-weight: bold;' }}">
+                                        {{ $step->step_name }}
+                                    </span>
 
                                     @if ($step->duration)
-                                        <span class="duration-tag {{ $step->is_overdue ? 'text-red' : 'text-blue' }}">
-                                            [{{ $step->duration }}]
-                                            @if ($step->is_overdue)
-                                                <span>&#9888; <i>(Telat {{ $step->overdue_label }})</i></span>
+                                        <div style="margin-left: 20px; font-size: 8px;">
+                                            <span class="{{ $step->is_overdue ? 'text-red' : 'text-blue' }}">
+                                                [{{ $step->duration }}]
+                                                @if ($step->is_overdue)
+                                                    <span>⚠ (Terlambat {{ $step->overdue_label }})</span>
+                                                @endif
+                                            </span>
+                                            @if ($step->is_completed)
+                                                <span class="text-muted">| Selesai: {{ $step->completed_time }}</span>
                                             @endif
-                                        </span>
+                                        </div>
                                     @endif
-
-                                    @if ($step->is_completed)
-                                        <span style="float: right; font-size: 7px;"
-                                            class="text-muted">{{ $step->completed_time }}</span>
-                                    @endif
-                                    <div style="clear: both;"></div>
                                 </div>
                             @endforeach
                         </td>
                         <td align="center">
                             @if ($item->display_status === 'completed')
-                                <span class="text-green" style="font-weight: bold;">SELESAI
-                                    ({{ $item->jam_selesai }})</span>
+                                <div class="text-green">SELESAI</div>
+                                <div style="font-size: 8px; color: #64748b;">Pukul {{ $item->jam_selesai }}</div>
                             @else
-                                <span class="text-blue" style="font-weight: bold;">ONGOING</span>
+                                <div class="text-blue">ONGOING</div>
+                                <div style="font-size: 8px; color: #64748b;">Sedang Diproses</div>
                             @endif
                         </td>
                     </tr>
                 @elseif ($item->type === 'empty_day')
                     <tr>
-                        <td colspan="4" align="center" style="color: #94a3b8; font-style: italic; padding: 10px;">
-                            Tidak ada agenda kerja.</td>
+                        <td colspan="4" align="center" style="color: #94a3b8; font-style: italic; padding: 15px;">
+                            -- Tidak ada agenda kerja yang tercatat --
+                        </td>
                     </tr>
                 @endif
             @endforeach
         </tbody>
     </table>
-    <div class="footer">Dicetak: {{ now()->translatedFormat('d F Y H:i') }}</div>
+
+    <div class="footer">
+        <table style="border:none; width:100%">
+            <tr>
+                <td style="border:none; text-align:left;">Marison Regency Group - Monitoring System</td>
+                <td style="border:none; text-align:right;">Dicetak: {{ now()->translatedFormat('d/m/Y H:i') }}</td>
+            </tr>
+        </table>
+    </div>
 </body>
 
 </html>

@@ -12,7 +12,9 @@ use Livewire\Volt\Volt;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
-
+Route::get('/email', function () {
+    return view('mail');
+});
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
