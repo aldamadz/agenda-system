@@ -10,16 +10,16 @@ state([
     'title' => '',
     'description' => '',
     'deadline' => '',
-    'steps' => [],
+    'steps' => [], // Kosong secara default
 ]);
 
 rules([
     'title' => 'required|min:5',
     'description' => 'required|min:5',
     'deadline' => 'required|after:now',
-    'steps' => 'required|array|min:1',
-    'steps.*.name' => 'required|min:2',
-    'steps.*.percent' => 'required|numeric|min:0|max:100',
+    'steps' => 'nullable|array',
+    'steps.*.name' => 'required_with:steps|min:2',
+    'steps.*.percent' => 'required_with:steps|numeric|min:0|max:100',
 ]);
 
 $formatDuration = function ($totalMinutes) {
@@ -61,10 +61,13 @@ $removeStep = function ($index) {
 $save = function () use ($formatDuration) {
     $this->validate();
 
-    $totalUsed = collect($this->steps)->sum('percent');
-    if ($totalUsed > 100) {
-        $this->addError('steps', "Total alokasi ({$totalUsed}%) melebihi batas 100%.");
-        return;
+    // Validasi total persen hanya jika ada step
+    if (!empty($this->steps)) {
+        $totalUsed = collect($this->steps)->sum('percent');
+        if ($totalUsed > 100) {
+            $this->addError('steps', "Total alokasi ({$totalUsed}%) melebihi batas 100%.");
+            return;
+        }
     }
 
     try {
@@ -89,21 +92,25 @@ $save = function () use ($formatDuration) {
             'color' => 'indigo',
         ]);
 
-        $currentTime = Carbon::now();
-        $totalMinutes = $this->timeResources['total_minutes'];
-        $accumulatedMinutes = 0;
+        // Proses pembuatan steps jika ada
+        if (!empty($this->steps)) {
+            $currentTime = Carbon::now();
+            $totalMinutes = $this->timeResources['total_minutes'] ?? 0;
+            $accumulatedMinutes = 0;
 
-        foreach ($this->steps as $step) {
-            $stepMinutes = ($step['percent'] / 100) * $totalMinutes;
-            $accumulatedMinutes += $stepMinutes;
+            foreach ($this->steps as $step) {
+                $stepMinutes = ($step['percent'] / 100) * $totalMinutes;
+                $accumulatedMinutes += $stepMinutes;
 
-            $agenda->steps()->create([
-                'step_name' => $step['name'],
-                'duration' => $formatDuration($stepMinutes),
-                'deadline' => $currentTime->copy()->addMinutes($accumulatedMinutes),
-                'is_completed' => false,
-            ]);
+                $agenda->steps()->create([
+                    'step_name' => $step['name'],
+                    'duration' => $formatDuration($stepMinutes),
+                    'deadline' => $currentTime->copy()->addMinutes($accumulatedMinutes),
+                    'is_completed' => false,
+                ]);
+            }
         }
+
         DB::commit();
         return redirect()->to('/dashboard');
     } catch (\Exception $e) {
@@ -129,18 +136,15 @@ $save = function () use ($formatDuration) {
                     <flux:icon.exclamation-triangle variant="mini" />
                     <span class="text-xs font-black uppercase tracking-widest">Validasi Gagal</span>
                 </div>
-                @error('steps')
-                    <p class="text-[10px] font-bold uppercase ml-6">{{ $message }}</p>
-                @enderror
-                @error('database_error')
-                    <p class="text-[10px] font-bold uppercase ml-6">{{ $message }}</p>
-                @enderror
+                @foreach ($errors->all() as $error)
+                    <p class="text-[10px] font-bold uppercase ml-6">{{ $error }}</p>
+                @endforeach
             </div>
         @endif
 
         <form wire:submit.prevent="save" class="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-            {{-- Kolom Kiri --}}
+            {{-- Kolom Kiri: Informasi Utama --}}
             <div class="lg:col-span-5 space-y-8">
                 <div
                     class="relative bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white dark:border-white/10 rounded-[3rem] p-10 shadow-2xl space-y-6">
@@ -153,21 +157,23 @@ $save = function () use ($formatDuration) {
                             Primary Info</h2>
                     </div>
 
-                    <flux:input wire:model="title" label="Judul Proyek" class="!rounded-2xl" />
-                    <flux:textarea wire:model="description" label="Deskripsi" rows="4" class="!rounded-2xl" />
+                    <flux:input wire:model="title" label="Judul Proyek" class="!rounded-2xl"
+                        placeholder="Masukkan nama agenda..." />
+                    <flux:textarea wire:model="description" label="Deskripsi" rows="4" class="!rounded-2xl"
+                        placeholder="Apa tujuan dari agenda ini?" />
                     <flux:input wire:model.live="deadline" type="datetime-local" label="Final Deadline"
                         class="!rounded-2xl" />
                 </div>
 
                 <div
                     class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-                    <h3 class="font-black italic text-2xl mb-4 uppercase tracking-tighter">Smart Scaling</h3>
-                    <p class="text-xs uppercase font-black opacity-80 italic">Slider bersifat relatif terhadap sisa
-                        kuota.</p>
+                    <h3 class="font-black italic text-2xl mb-4 uppercase tracking-tighter">Flexible Planning</h3>
+                    <p class="text-xs uppercase font-black opacity-80 italic">Anda bisa membuat agenda langsung atau
+                        memecahnya menjadi beberapa tahapan (steps).</p>
                 </div>
             </div>
 
-            {{-- Kolom Kanan --}}
+            {{-- Kolom Kanan: Workload Steps --}}
             <div class="lg:col-span-7 flex flex-col">
                 <div
                     class="relative bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[3.5rem] p-10 shadow-2xl flex flex-col h-full">
@@ -185,11 +191,9 @@ $save = function () use ($formatDuration) {
                         @php $totalMinutes = $this->timeResources['total_minutes'] ?? 0; @endphp
 
                         @forelse ($steps as $index => $step)
-                            {{-- Logic Alpine untuk sisa kuota dinamis --}}
                             <div class="p-8 bg-white/80 dark:bg-white/5 border border-white dark:border-white/10 rounded-[2.5rem] relative group/step"
                                 wire:key="step-{{ $index }}" x-data="{
                                     get available() {
-                                        // Menghitung sisa kuota SEBELUM step ini
                                         let usedBefore = stepsData.slice(0, {{ $index }}).reduce((acc, s) => acc + parseInt(s.percent || 0), 0);
                                         return Math.max(0, 100 - usedBefore);
                                     },
@@ -243,26 +247,33 @@ $save = function () use ($formatDuration) {
                             </div>
                         @empty
                             <div
-                                class="py-20 text-center opacity-40 italic font-black text-[10px] uppercase tracking-widest">
-                                No Milestones</div>
+                                class="py-20 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[3rem] opacity-50">
+                                <flux:icon.list-bullet class="w-10 h-10 mb-4 text-slate-300" />
+                                <h4 class="text-[10px] font-black uppercase tracking-widest italic text-slate-400">No
+                                    Steps Defined</h4>
+                                <p class="text-[9px] mt-2 text-slate-400">Agenda akan tersimpan sebagai tugas tunggal.
+                                </p>
+                            </div>
                         @endforelse
                     </div>
 
-                    {{-- TOTAL INDICATOR (REAL-TIME VIA ALPINE) --}}
-                    <div
-                        class="mb-8 p-6 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] border border-slate-200/50 dark:border-white/5">
+                    {{-- Total Persen Indicator --}}
+                    @if (!empty($steps))
                         <div
-                            class="flex justify-between items-center mb-3 text-[10px] font-black uppercase tracking-widest italic">
-                            <span class="text-slate-500">Total Terdistribusi</span>
-                            <span :class="totalUsed > 100 ? 'text-red-500' : 'text-indigo-600'">
-                                <span x-text="totalUsed"></span>% / 100%
-                            </span>
+                            class="mb-8 p-6 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] border border-slate-200/50 dark:border-white/5">
+                            <div
+                                class="flex justify-between items-center mb-3 text-[10px] font-black uppercase tracking-widest italic">
+                                <span class="text-slate-500">Total Terdistribusi</span>
+                                <span :class="totalUsed > 100 ? 'text-red-500' : 'text-indigo-600'">
+                                    <span x-text="totalUsed"></span>% / 100%
+                                </span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-600 transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.5)]"
+                                    :style="'width: ' + Math.min(100, totalUsed) + '%'"></div>
+                            </div>
                         </div>
-                        <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div class="h-full bg-indigo-600 transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.5)]"
-                                :style="'width: ' + Math.min(100, totalUsed) + '%'"></div>
-                        </div>
-                    </div>
+                    @endif
 
                     <button type="submit"
                         class="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.4em] transition-all hover:scale-[1.01] shadow-2xl shadow-indigo-500/40">
