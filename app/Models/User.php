@@ -23,7 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'parent_id',
+        'role',      // Tambahkan ini agar bisa diupdate
+        'parent_id', // Pastikan ini tetap ada
     ];
 
     /**
@@ -51,6 +52,27 @@ class User extends Authenticatable
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Helper Methods (Pengecekan Role)
+    |--------------------------------------------------------------------------
+    */
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === 'staff';
+    }
+
     /**
      * Get the user's initials
      */
@@ -63,10 +85,13 @@ class User extends Authenticatable
             ->implode('');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships (Relasi Database)
+    |--------------------------------------------------------------------------
+    */
+
     /**
-     * Relasi ke User yang menjadi bawahan (Subordinates)
-     */
-/**
      * Relasi ke User yang menjadi bawahan (Subordinates)
      */
     public function bawahan()
@@ -90,4 +115,3 @@ class User extends Authenticatable
         return $this->hasMany(Agenda::class);
     }
 }
-

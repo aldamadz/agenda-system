@@ -37,7 +37,7 @@ class AgendaLog extends Model
      * dengan ->format() di Blade.
      */
     protected $casts = [
-        'log_date' => 'datetime',
+        'log_date' => 'date:Y-m-d',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

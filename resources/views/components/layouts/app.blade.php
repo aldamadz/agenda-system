@@ -61,26 +61,38 @@
 
     <script>
         function getSwalConfig(payload) {
+            // Pastikan payload ada, jika tidak gunakan objek kosong
+            const data = payload || {};
             const isDark = document.documentElement.classList.contains('dark');
+
             return {
-                icon: payload.icon || 'success',
-                title: payload.title || '',
-                text: payload.text || '',
+                icon: data.icon || 'success',
+                title: data.title || '',
+                text: data.text || '',
                 timer: 3000,
-                toast: true,
+                toast: true, // Karena ini TRUE...
                 position: 'top-end',
                 showConfirmButton: false,
-                background: isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                backdrop: `blur(12px)`,
+                timerProgressBar: true,
+                background: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+
+                // PERBAIKAN: Backdrop harus FALSE atau dihapus jika menggunakan Toast
+                backdrop: false,
+
                 color: isDark ? '#f1f5f9' : '#1e293b',
                 customClass: {
-                    popup: 'glass-card !rounded-2xl !border-white/10'
+                    popup: 'glass-card !rounded-2xl !border-white/10 shadow-2xl'
                 }
             };
         }
 
         window.addEventListener('swal', event => {
-            Swal.fire(getSwalConfig(event.detail[0]));
+            // Pengamanan: Ambil data baik dari event.detail[0] (array) atau event.detail (objek)
+            const payload = Array.isArray(event.detail) ? event.detail[0] : event.detail;
+
+            if (payload) {
+                Swal.fire(getSwalConfig(payload));
+            }
         });
     </script>
 </body>

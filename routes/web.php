@@ -12,12 +12,10 @@ use Livewire\Volt\Volt;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
-Route::get('/email', function () {
-    return view('mail');
-});
-Route::get('/features', function () {
-    return view('features');
-});
+
+Route::get('/email', function () { return view('mail'); });
+Route::get('/features', function () { return view('features'); });
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
@@ -25,64 +23,43 @@ Route::get('/features', function () {
 */
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    /* --- DASHBOARD CENTRAL --- */
-    // Dashboard Utama (Overview Statistik)
-    Volt::route('/dashboard', 'dashboard.dashboard')
-        ->name('dashboard');
+    /* --- SEMUA ROLE (Staff, Manager, Admin) --- */
+    Volt::route('/dashboard', 'dashboard.dashboard')->name('dashboard');
+    Volt::route('/calendar', 'calendar.index')->name('calendar');
+    Volt::route('/dashboard/monitoring', 'dashboard.monitoring-list')->name('dashboard.monitoring');
+    Volt::route('/agenda/create', 'agenda.create')->name('agenda.create');
+    Volt::route('/dashboard/history', 'dashboard.history-list')->name('dashboard.history');
 
-    /* --- AGENDA & PROGRESS (STAFF / MANAGER) --- */
+    /* --- MANAGERIAL AREA (Manager & Admin) --- */
+    Route::middleware(['role:manager,admin'])->group(function () {
+        Volt::route('/manager/approval', 'dashboard.approval-list')
+            ->name('manager.approval');
+            Volt::route('/manager/issues', 'dashboard.issue')->name('manager.issues');
+    });
 
-    // Halaman Kalender (Tampilan Visual Jadwal)
-    Volt::route('/calendar', 'calendar.index')
-        ->name('calendar');
+    /* --- ADMIN ONLY AREA --- */
+    Route::middleware(['role:admin'])->group(function () {
+        // Halaman Manajemen User (untuk ganti role & parent_id)
+        Volt::route('/admin/users', 'admin.user-index')
+            ->name('admin.users');
 
-    // Halaman Monitoring (List Detail Progres)
-    Volt::route('/dashboard/monitoring', 'dashboard.monitoring-list')
-        ->name('dashboard.monitoring');
+        Volt::route('/dashboard/logs', 'dashboard.logs')
+            ->name('dashboard.logs');
+    });
 
-    // Halaman Buat Agenda Baru
-    Volt::route('/agenda/create', 'agenda.create')
-        ->name('agenda.create');
-
-    // Halaman Riwayat (Arsip Selesai)
-    Volt::route('/dashboard/history', 'dashboard.history-list')
-        ->name('dashboard.history');
-
-    /* --- MANAGERIAL AREA --- */
-
-    // Halaman Persetujuan (Hanya muncul jika user adalah Manager)
-    Volt::route('/manager/approval', 'dashboard.approval-list')
-        ->name('manager.approval');
-
-    Volt::route('/dashboard/logs', 'dashboard.logs')
-        ->name('dashboard.logs');
-
-    /* --- USER SETTINGS (PROFILE, PASSWORD, ETC) --- */
+    /* --- USER SETTINGS --- */
     Route::prefix('settings')->group(function () {
         Route::redirect('/', 'settings/profile');
+        Volt::route('profile', 'settings.profile')->name('profile.edit');
+        Volt::route('password', 'settings.password')->name('user-password.edit');
+        Volt::route('appearance', 'settings.appearance')->name('appearance.edit');
 
-        Volt::route('profile', 'settings.profile')
-            ->name('profile.edit');
-
-        Volt::route('password', 'settings.password')
-            ->name('user-password.edit');
-
-        Volt::route('appearance', 'settings.appearance')
-            ->name('appearance.edit');
-
-        // Fitur Keamanan (Two Factor Authentication)
         Volt::route('two-factor', 'settings.two-factor')
-            ->middleware(
-                when(
-                    Features::canManageTwoFactorAuthentication()
-                    && Features::optionEnabled(
-                        Features::twoFactorAuthentication(),
-                        'confirmPassword'
-                    ),
-                    ['password.confirm'],
-                    []
-                )
-            )
+            ->middleware(when(
+                Features::canManageTwoFactorAuthentication() &&
+                Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'),
+                ['password.confirm'], []
+            ))
             ->name('two-factor.show');
     });
 });
