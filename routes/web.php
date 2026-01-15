@@ -15,6 +15,9 @@ Route::get('/', function () {
 Route::get('/email', function () {
     return view('mail');
 });
+Route::get('/features', function () {
+    return view('features');
+});
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
