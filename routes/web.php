@@ -24,6 +24,15 @@ Route::get('/documentation', function () {
     ]);
 });
 
+Route::get('/test-otomatis', function () {
+    return response()->json([
+        'status' => 'Berhasil!',
+        'message' => 'Sistem otomatisasi Laravel Marison sudah aktif.',
+        'timestamp' => now()->toDateTimeString(),
+        'source' => 'Folder Repositories (Tanpa Copy Manual)'
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
