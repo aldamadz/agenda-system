@@ -247,41 +247,139 @@ $exportPdf = function () {
     </div>
 
     {{-- Modal Detail --}}
-    <flux:modal name="detail-agenda" class="w-full max-w-lg !rounded-[2rem] md:!rounded-[3rem]">
+    {{-- Modal Detail Optimasi --}}
+    <flux:modal name="detail-agenda" class="w-full max-w-2xl !rounded-[2rem] md:!rounded-[3rem] overflow-hidden">
         @if ($this->selectedAgenda)
-            <div class="space-y-6">
-                <div
-                    class="p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] text-white shadow-2xl {{ $this->selectedAgenda->status === 'completed' ? 'bg-emerald-600' : 'bg-indigo-600' }}">
-                    <h2 class="text-xl md:text-3xl font-black uppercase italic leading-none tracking-tighter">
-                        {{ $this->selectedAgenda->title }}</h2>
-                    <p class="text-[10px] mt-4 uppercase font-bold opacity-80">PIC:
-                        {{ $this->selectedAgenda->user->name }}</p>
-                </div>
+            @php
+                $agenda = $this->selectedAgenda;
+                $totalSteps = $agenda->steps->count();
+                $doneSteps = $agenda->steps->where('is_completed', true)->count();
+                $percent = $totalSteps > 0 ? round(($doneSteps / $totalSteps) * 100) : 0;
+                $isCompleted = $agenda->status === 'completed';
+            @endphp
 
-                <div class="px-2 md:px-4 space-y-3 max-h-[55vh] overflow-y-auto">
-                    @foreach ($this->selectedAgenda->steps as $step)
-                        <div
-                            class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div class="flex items-center gap-4">
-                                <flux:icon name="{{ $step->is_completed ? 'check-circle' : 'minus-circle' }}"
-                                    variant="mini"
-                                    class="w-5 h-5 {{ $step->is_completed ? 'text-emerald-500' : 'text-slate-300' }}" />
-                                <div>
-                                    <div class="text-sm font-bold text-slate-700 leading-tight">{{ $step->step_name }}
-                                    </div>
-                                    @if ($step->duration)
-                                        <div class="text-[9px] text-indigo-600 font-bold uppercase mt-1">Estimasi:
-                                            {{ $step->duration }}</div>
-                                    @endif
-                                </div>
+            <div class="flex flex-col">
+                {{-- Header Visual --}}
+                <div class="relative p-6 md:p-10 text-white {{ $isCompleted ? 'bg-emerald-600' : 'bg-indigo-600' }}">
+                    <div class="relative z-10">
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
+                            <span
+                                class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest">
+                                {{ $agenda->status }}
+                            </span>
+                            @if ($agenda->deadline)
+                                <span
+                                    class="px-3 py-1 bg-black/10 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    Deadline: {{ \Carbon\Carbon::parse($agenda->deadline)->translatedFormat('d M Y') }}
+                                </span>
+                            @endif
+                        </div>
+
+                        <h2 class="text-2xl md:text-4xl font-black uppercase italic leading-none tracking-tighter mb-2">
+                            {{ $agenda->title }}
+                        </h2>
+
+                        <div class="flex items-center gap-3 mt-6">
+                            <div
+                                class="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-black text-sm border border-white/30">
+                                {{ substr($agenda->user->name, 0, 1) }}
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold opacity-70 leading-none">Person In Charge</p>
+                                <p class="text-sm font-bold">{{ $agenda->user->name }}</p>
                             </div>
                         </div>
-                    @endforeach
+                    </div>
+
+                    {{-- Background Dekoratif --}}
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <flux:icon name="clipboard-document-check" class="w-32 h-32" />
+                    </div>
                 </div>
 
-                <div class="p-4">
+                <div class="p-6 md:p-8 bg-white dark:bg-slate-900">
+                    {{-- Progress Stats --}}
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div
+                            class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Progres Kerja</p>
+                            <div class="flex items-end gap-2">
+                                <span class="text-2xl font-black text-indigo-600">{{ $percent }}%</span>
+                                <span class="text-[10px] font-bold text-slate-400 mb-1">Selesai</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                                <div class="bg-indigo-600 h-full transition-all duration-500"
+                                    style="width: {{ $percent }}%"></div>
+                            </div>
+                        </div>
+                        <div
+                            class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                            <p class="text-[9px] font-black text-slate-400 uppercase mb-1">Total Langkah</p>
+                            <div class="flex items-end gap-2">
+                                <span
+                                    class="text-2xl font-black text-slate-700 dark:text-white">{{ $doneSteps }}<span
+                                        class="text-slate-300 mx-1">/</span>{{ $totalSteps }}</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-slate-400 mt-2 italic">Langkah Kerja</p>
+                        </div>
+                    </div>
+
+                    {{-- Steps List --}}
+                    <div class="space-y-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Daftar Rencana
+                            Aksi</h3>
+
+                        @forelse ($agenda->steps as $step)
+                            <div
+                                class="group flex items-center justify-between p-4 rounded-2xl border transition-all {{ $step->is_completed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700' }}">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative">
+                                        <flux:icon name="{{ $step->is_completed ? 'check-circle' : 'circle' }}"
+                                            variant="mini"
+                                            class="w-6 h-6 {{ $step->is_completed ? 'text-emerald-500' : 'text-slate-300' }}" />
+                                        @if (!$loop->last)
+                                            <div class="absolute top-6 left-3 w-px h-8 bg-slate-100"></div>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <div
+                                            class="text-sm font-bold {{ $step->is_completed ? 'text-emerald-900 dark:text-emerald-400 line-through' : 'text-slate-700 dark:text-slate-200' }}">
+                                            {{ $step->step_name }}
+                                        </div>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            @if ($step->duration)
+                                                <span
+                                                    class="text-[9px] font-black uppercase text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">
+                                                    Estimasi: {{ $step->duration }}
+                                                </span>
+                                            @endif
+                                            @if ($step->completed_at)
+                                                <span class="text-[9px] font-bold text-slate-400">
+                                                    Selesai:
+                                                    {{ \Carbon\Carbon::parse($step->completed_at)->translatedFormat('H:i') }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-center py-10">
+                                <p class="text-sm text-slate-400 italic">Belum ada langkah kerja yang didefinisikan.
+                                </p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div
+                    class="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex gap-3">
                     <flux:modal.close class="w-full">
-                        <flux:button class="w-full !rounded-2xl font-black uppercase italic py-3">Tutup</flux:button>
+                        <flux:button variant="filled"
+                            class="w-full !rounded-xl font-black uppercase italic py-3 shadow-lg shadow-indigo-200 dark:shadow-none">
+                            Tutup Monitoring
+                        </flux:button>
                     </flux:modal.close>
                 </div>
             </div>
