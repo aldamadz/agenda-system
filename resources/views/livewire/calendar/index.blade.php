@@ -113,7 +113,37 @@ $goToMonth = fn($val) => ($this->targetDate = Carbon::parse($val . '-01')->toDat
 $showDetail = fn($id) => ($this->selectedAgendaId = $id) && $this->dispatch('modal-show', name: 'detail-agenda');
 
 $exportPdf = function () {
-    // Logika PDF Anda
+    // 1. Ambil data agenda berdasarkan filter aktif
+    $dataAgendas = $this->agendas;
+    $dateLabel = Carbon::parse($this->targetDate)->translatedFormat('F Y');
+    $userName = auth()->user()->name;
+
+    // 2. Persiapkan data untuk dikirim ke view PDF
+    $data = [
+        'title' => 'Laporan Monitoring Agenda - ' . $dateLabel,
+        'date' => $dateLabel,
+        'agendas' => $dataAgendas,
+        'generated_at' => now()->translatedFormat('d F Y H:i'),
+        'author' => $userName,
+    ];
+
+    // 3. Generate PDF menggunakan view yang sudah Anda buat
+    $pdf = Pdf::loadView('pdf.agenda-report', $data)->setPaper('a4', 'portrait');
+
+    // 4. Buat Nama File Unik:
+    // Format: Laporan-Agenda-[Bulan-Tahun]-[Nama-User]-[TglJam].pdf
+    // Contoh: Laporan-Agenda-Januari-2026-Admin-Utama-1901261430.pdf
+    $filename = sprintf(
+        'Laporan-Agenda-%s-%s-%s.pdf',
+        Str::slug($dateLabel),
+        Str::slug($userName),
+        now()->format('dmY-His'), // d=tgl, m=bln, Y=thn, H=jam, i=menit, s=detik
+    );
+
+    // 5. Eksekusi Download
+    return response()->streamDownload(function () use ($pdf) {
+        echo $pdf->stream();
+    }, $filename);
 };
 ?>
 
