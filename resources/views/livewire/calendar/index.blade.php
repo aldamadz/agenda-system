@@ -113,58 +113,89 @@ $goToMonth = fn($val) => ($this->targetDate = Carbon::parse($val . '-01')->toDat
 $showDetail = fn($id) => ($this->selectedAgendaId = $id) && $this->dispatch('modal-show', name: 'detail-agenda');
 
 $exportPdf = function () {
-    // 1. Ambil data mentah dari computed property agendas
-    $rawAgendas = $this->agendas;
-    $dateLabel = Carbon::parse($this->targetDate)->translatedFormat('F Y');
+    $target = Carbon::parse($this->targetDate);
+    $startOfMonth = $target->copy()->startOfMonth();
+    $endOfMonth = $target->copy()->endOfMonth();
+    $dateLabel = $target->translatedFormat('F Y');
     $userName = auth()->user()->name;
 
-    // 2. Transformasi data agar sesuai dengan kebutuhan Blade (display_date, type, dll)
-    // Kita urutkan berdasarkan tanggal terbaru
-    $formattedData = $rawAgendas->sortByDesc('created_at')->map(function ($agenda) {
-        return (object) [
-            'type' => 'agenda',
-            'display_date' => Carbon::parse($agenda->created_at)->format('Y-m-d'),
-            'user' => $agenda->user,
-            'title' => $agenda->title,
-            'jam_dibuat' => Carbon::parse($agenda->created_at)->format('H:i'),
-            'jam_deadline' => $agenda->deadline ? Carbon::parse($agenda->deadline)->format('H:i') : '-',
-            'display_status' => $agenda->status,
-            'jam_selesai' => $agenda->status === 'completed' ? Carbon::parse($agenda->updated_at)->format('H:i') : null,
-            'display_steps' => $agenda->steps->map(function ($step) {
-                return (object) [
-                    'step_name' => $step->step_name,
-                    'is_completed' => (bool) $step->completed_at,
-                    'is_overdue' => false, // Set default atau sesuaikan logika Anda
-                    'duration' => null, // Set default atau sesuaikan logika Anda
-                    'completed_time' => $step->completed_at ? Carbon::parse($step->completed_at)->format('H:i') : null,
-                ];
-            }),
-        ];
-    });
+    $allAgendas = $this->agendas;
 
-    // 3. Tentukan info filter untuk header PDF
-    $filterInfo = 'Semua Anggota';
-    if ($this->filterUserId) {
-        $selectedUser = User::find($this->filterUserId);
-        $filterInfo = $selectedUser ? $selectedUser->name : 'Semua Anggota';
+    $reportData = collect();
+    $currentDay = $startOfMonth->copy();
+
+    while ($currentDay <= $endOfMonth) {
+        $dateString = $currentDay->toDateString();
+        $agendasToday = $allAgendas->filter(fn($a) => Carbon::parse($a->created_at)->toDateString() === $dateString);
+
+        if ($agendasToday->count() > 0) {
+            foreach ($agendasToday as $agenda) {
+                $reportData->push(
+                    (object) [
+                        'type' => 'agenda',
+                        'display_date' => $dateString,
+                        'user' => $agenda->user,
+                        'title' => $agenda->title,
+                        'jam_dibuat' => Carbon::parse($agenda->created_at)->format('H:i'),
+                        'jam_deadline' => $agenda->deadline ? Carbon::parse($agenda->deadline)->format('H:i') : '-',
+                        'display_status' => $agenda->status,
+                        'jam_selesai' => $agenda->status === 'completed' ? Carbon::parse($agenda->updated_at)->format('H:i') : null,
+                        'display_steps' => $agenda->steps->map(function ($s) use ($agenda) {
+                            $start = Carbon::parse($agenda->created_at);
+                            $end = $s->completed_at ? Carbon::parse($s->completed_at) : now();
+
+                            // Hitung Durasi (Selisih waktu dibuat sampai selesai/sekarang)
+                            $diff = $start->diff($end);
+                            $durationLabel = $diff->format('%h jam %i mnt');
+
+                            // Logika Overdue: Jika ada deadline dan waktu selesai (atau sekarang) melewati deadline
+                            $isOverdue = false;
+                            $overdueLabel = '';
+                            if ($agenda->deadline) {
+                                $deadline = Carbon::parse($agenda->deadline);
+                                if ($end->greaterThan($deadline)) {
+                                    $isOverdue = true;
+                                    $overdueDiff = $deadline->diff($end);
+                                    $overdueLabel = $overdueDiff->format('%hj %im');
+                                }
+                            }
+
+                            return (object) [
+                                'step_name' => $s->step_name,
+                                'is_completed' => (bool) $s->completed_at,
+                                'completed_time' => $s->completed_at ? Carbon::parse($s->completed_at)->format('H:i') : null,
+                                'is_overdue' => $isOverdue,
+                                'overdue_label' => $overdueLabel,
+                                'duration' => $durationLabel,
+                            ];
+                        }),
+                    ],
+                );
+            }
+        } else {
+            $reportData->push(
+                (object) [
+                    'type' => 'empty_day',
+                    'display_date' => $dateString,
+                ],
+            );
+        }
+        $currentDay->addDay();
     }
 
-    // 4. Siapkan payload variabel untuk Blade
+    $filterInfo = $this->filterUserId ? User::find($this->filterUserId)->name ?? 'Semua Anggota' : 'Semua Anggota';
+
     $payload = [
         'month' => $dateLabel,
         'filterInfo' => $filterInfo,
-        'data' => $formattedData, // Blade kamu melooping $data, bukan $agendas
+        'data' => $reportData,
     ];
 
-    // 5. Generate PDF
     $pdf = Pdf::loadView('pdf.agenda-report', $payload)->setPaper('a4', 'portrait');
 
-    // 6. Nama file unik (Slug + User + Timestamp)
     $filename = sprintf('Laporan-Agenda-%s-%s-%s.pdf', Str::slug($dateLabel), Str::slug($userName), now()->format('dmY-His'));
 
-    return response()->streamDownload(function () use ($pdf) {
-        echo $pdf->stream();
-    }, $filename);
+    return response()->streamDownload(fn() => print $pdf->output(), $filename);
 };
 ?>
 

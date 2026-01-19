@@ -19,7 +19,6 @@
         .header-container {
             width: 100%;
             border: 2px solid #1e3a8a;
-            /* Biru Gelap sesuai Logo */
             padding: 10px;
             margin-bottom: 20px;
         }
@@ -31,7 +30,6 @@
 
         .logo-box {
             width: 180px;
-            /* Diperlebar untuk menampung logo horizontal */
             vertical-align: middle;
             border-right: 1px solid #e2e8f0;
             padding-right: 15px;
@@ -71,7 +69,6 @@
 
         th {
             background-color: #cbd5e1;
-            /* Abu-abu header sesuai gambar */
             color: #1e293b;
             font-weight: bold;
             text-transform: capitalize;
@@ -176,8 +173,8 @@
     <table>
         <thead>
             <tr>
-                <th width="18%">Waktu / PIC</th>
-                <th width="25%">Agenda Kerja</th>
+                <th width="22%">Waktu / PIC</th>
+                <th width="21%">Agenda Kerja</th>
                 <th width="37%">Tahapan & Durasi</th>
                 <th width="20%">Status Akhir</th>
             </tr>
@@ -200,10 +197,8 @@
                             <div class="time-label">PIC:</div>
                             <div style="font-weight: bold; color: #1e3a8a; margin-bottom: 5px;">{{ $item->user->name }}
                             </div>
-                            <div class="time-label">Mulai: <b>{{ $item->jam_dibuat }}</b></div>
-                            <div class="time-label">Limit: <b
-                                    style="color: {{ str_contains($item->jam_deadline, ' ') ? '#e11d48' : '#333' }};">{{ $item->jam_deadline }}</b>
-                            </div>
+                            <div class="time-label">Mulai: <b style="color:#333">{{ $item->jam_dibuat }}</b></div>
+                            <div class="time-label">Deadline: <b style="color:#333">{{ $item->jam_deadline }}</b></div>
                         </td>
                         <td>
                             <div style="font-weight: bold; font-size: 10px;">{{ $item->title }}</div>
