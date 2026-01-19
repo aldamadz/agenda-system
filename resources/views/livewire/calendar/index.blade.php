@@ -113,34 +113,55 @@ $goToMonth = fn($val) => ($this->targetDate = Carbon::parse($val . '-01')->toDat
 $showDetail = fn($id) => ($this->selectedAgendaId = $id) && $this->dispatch('modal-show', name: 'detail-agenda');
 
 $exportPdf = function () {
-    // 1. Ambil data agenda berdasarkan filter aktif
-    $dataAgendas = $this->agendas;
+    // 1. Ambil data mentah dari computed property agendas
+    $rawAgendas = $this->agendas;
     $dateLabel = Carbon::parse($this->targetDate)->translatedFormat('F Y');
     $userName = auth()->user()->name;
 
-    // 2. Persiapkan data untuk dikirim ke view PDF
-    $data = [
-        'title' => 'Laporan Monitoring Agenda - ' . $dateLabel,
-        'date' => $dateLabel,
-        'agendas' => $dataAgendas,
-        'generated_at' => now()->translatedFormat('d F Y H:i'),
-        'author' => $userName,
+    // 2. Transformasi data agar sesuai dengan kebutuhan Blade (display_date, type, dll)
+    // Kita urutkan berdasarkan tanggal terbaru
+    $formattedData = $rawAgendas->sortByDesc('created_at')->map(function ($agenda) {
+        return (object) [
+            'type' => 'agenda',
+            'display_date' => Carbon::parse($agenda->created_at)->format('Y-m-d'),
+            'user' => $agenda->user,
+            'title' => $agenda->title,
+            'jam_dibuat' => Carbon::parse($agenda->created_at)->format('H:i'),
+            'jam_deadline' => $agenda->deadline ? Carbon::parse($agenda->deadline)->format('H:i') : '-',
+            'display_status' => $agenda->status,
+            'jam_selesai' => $agenda->status === 'completed' ? Carbon::parse($agenda->updated_at)->format('H:i') : null,
+            'display_steps' => $agenda->steps->map(function ($step) {
+                return (object) [
+                    'step_name' => $step->step_name,
+                    'is_completed' => (bool) $step->completed_at,
+                    'is_overdue' => false, // Set default atau sesuaikan logika Anda
+                    'duration' => null, // Set default atau sesuaikan logika Anda
+                    'completed_time' => $step->completed_at ? Carbon::parse($step->completed_at)->format('H:i') : null,
+                ];
+            }),
+        ];
+    });
+
+    // 3. Tentukan info filter untuk header PDF
+    $filterInfo = 'Semua Anggota';
+    if ($this->filterUserId) {
+        $selectedUser = User::find($this->filterUserId);
+        $filterInfo = $selectedUser ? $selectedUser->name : 'Semua Anggota';
+    }
+
+    // 4. Siapkan payload variabel untuk Blade
+    $payload = [
+        'month' => $dateLabel,
+        'filterInfo' => $filterInfo,
+        'data' => $formattedData, // Blade kamu melooping $data, bukan $agendas
     ];
 
-    // 3. Generate PDF menggunakan view yang sudah Anda buat
-    $pdf = Pdf::loadView('pdf.agenda-report', $data)->setPaper('a4', 'portrait');
+    // 5. Generate PDF
+    $pdf = Pdf::loadView('pdf.agenda-report', $payload)->setPaper('a4', 'portrait');
 
-    // 4. Buat Nama File Unik:
-    // Format: Laporan-Agenda-[Bulan-Tahun]-[Nama-User]-[TglJam].pdf
-    // Contoh: Laporan-Agenda-Januari-2026-Admin-Utama-1901261430.pdf
-    $filename = sprintf(
-        'Laporan-Agenda-%s-%s-%s.pdf',
-        Str::slug($dateLabel),
-        Str::slug($userName),
-        now()->format('dmY-His'), // d=tgl, m=bln, Y=thn, H=jam, i=menit, s=detik
-    );
+    // 6. Nama file unik (Slug + User + Timestamp)
+    $filename = sprintf('Laporan-Agenda-%s-%s-%s.pdf', Str::slug($dateLabel), Str::slug($userName), now()->format('dmY-His'));
 
-    // 5. Eksekusi Download
     return response()->streamDownload(function () use ($pdf) {
         echo $pdf->stream();
     }, $filename);
