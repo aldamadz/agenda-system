@@ -17,7 +17,6 @@ state([
     'stepNote' => '',
 ]);
 
-// Fungsi membuka modal laporan
 $openIssueModal = function ($id) {
     $agenda = Agenda::findOrFail($id);
     $this->selectedAgendaId = $id;
@@ -26,7 +25,6 @@ $openIssueModal = function ($id) {
     $this->showIssueModal = true;
 };
 
-// Query Monitoring Agendas (Mendukung Admin melihat semua)
 $monitoringAgendas = computed(function () {
     $user = auth()->user();
     $isAdmin = $user->role === 'admin' || $user->is_admin;
@@ -46,43 +44,29 @@ $monitoringAgendas = computed(function () {
     return $query->latest()->get();
 });
 
-// Submit Kendala & Perpanjangan
 $submitIssue = function () {
     $this->validate([
         'issueCategory' => 'required',
         'issueDescription' => 'required|min:5',
-        'requestedDeadline' => 'nullable|after:now',
+        'requestedDeadline' => 'nullable',
     ]);
 
     $isExtension = !empty($this->requestedDeadline);
     $now = now();
-    $category = $isExtension ? 'Extension Request' : $this->issueCategory;
-
-    $deadlineInfo = $isExtension ? 'MEMINTA PERPANJANGAN KE: ' . Carbon::parse($this->requestedDeadline)->format('d M Y, H:i') . " WIB (Deadline Lama: {$this->currentAgendaDeadline}). Keterangan: " : "LAPORAN KENDALA JAM {$now->format('H:i')}: ";
 
     AgendaLog::create([
         'agenda_id' => $this->selectedAgendaId,
-        'issue_category' => $category,
-        'issue_description' => $deadlineInfo . $this->issueDescription,
-        'progress_note' => $isExtension ? 'MENUNGGU PERSETUJUAN' : 'LAPORAN KENDALA',
         'log_date' => $now->format('Y-m-d'),
         'log_time' => $now->format('H:i:s'),
-    ]);
-
-    ActivityLog::create([
-        'user_id' => auth()->id(),
-        'agenda_id' => $this->selectedAgendaId,
-        'action' => $isExtension ? 'REQUEST' : 'ISSUE',
-        'description' => auth()->user()->name . ($isExtension ? ' mengajukan perpanjangan.' : ' melaporkan kendala.'),
-        'icon' => $isExtension ? 'clock' : 'exclamation-triangle',
-        'color' => $isExtension ? 'purple' : 'amber',
+        'progress_note' => $isExtension ? 'MENUNGGU PERSETUJUAN' : 'LAPORAN KENDALA',
+        'issue_category' => $isExtension ? 'Extension Request' : $this->issueCategory,
+        'issue_description' => $this->issueDescription,
     ]);
 
     $this->reset(['showIssueModal', 'selectedAgendaId', 'issueCategory', 'issueDescription', 'requestedDeadline']);
-    $this->dispatch('swal', ['icon' => 'success', 'title' => 'Laporan Berhasil Terkirim']);
+    $this->dispatch('swal', ['icon' => 'success', 'title' => 'Laporan Terkirim']);
 };
 
-// Logika Checklist
 $clickStep = function ($stepId) {
     $step = AgendaStep::findOrFail($stepId);
     if ($step->is_completed) {
@@ -97,34 +81,44 @@ $clickStep = function ($stepId) {
 $saveStepCompletion = function () {
     $step = AgendaStep::findOrFail($this->editingStepId);
     $step->update(['is_completed' => true, 'completed_at' => now(), 'notes' => $this->stepNote]);
+
+    AgendaLog::create([
+        'agenda_id' => $step->agenda_id,
+        'log_date' => now()->format('Y-m-d'),
+        'log_time' => now()->format('H:i:s'),
+        'issue_category' => 'Penyelesaian',
+        'issue_description' => "Selesai: {$step->step_name}. Catatan: {$this->stepNote}",
+        'progress_note' => 'Step Selesai',
+    ]);
+
     $this->reset(['showNoteModal', 'editingStepId', 'stepNote']);
     $this->dispatch('swal', ['icon' => 'success', 'title' => 'Progres Disimpan']);
 };
 
 $completeAgenda = function ($id) {
     Agenda::findOrFail($id)->update(['status' => 'completed']);
-    $this->dispatch('swal', ['icon' => 'success', 'title' => 'Agenda Berhasil Diarsipkan']);
+    $this->dispatch('swal', ['icon' => 'success', 'title' => 'Agenda Selesai & Diarsipkan']);
 };
 ?>
 
 <section class="space-y-6 pt-10" wire:poll.60s>
-    <div class="px-6 flex justify-between items-end">
-        <div>
-            <flux:heading size="xl" class="!font-black tracking-tighter uppercase italic">Monitoring System
-            </flux:heading>
-            <flux:subheading>Pantau progres tim dan kelola hambatan secara real-time.</flux:subheading>
-        </div>
+    <div class="px-6">
+        <flux:heading size="xl" class="!font-black tracking-tighter uppercase italic">Monitoring System
+        </flux:heading>
+        <flux:subheading>Pantau progres tim secara real-time.</flux:subheading>
     </div>
 
     <div class="grid grid-cols-1 gap-8 px-6 pb-20">
         @forelse ($this->monitoringAgendas as $agenda)
             @php
-                $isAllStepsDone = $agenda->steps->isNotEmpty() && $agenda->steps->every(fn($s) => $s->is_completed);
+                $hasSteps = $agenda->steps->isNotEmpty();
+                // KUNCI PERBAIKAN: Jika tidak ada steps, dianggap "siap arsip"
+                $isAllStepsDone = $hasSteps ? $agenda->steps->every(fn($s) => $s->is_completed) : true;
                 $isOverdue = $agenda->deadline->isPast() && !$isAllStepsDone;
             @endphp
 
             <div
-                class="bg-white dark:bg-zinc-900 border-2 {{ $isOverdue ? 'border-red-500' : 'border-slate-100 dark:border-white/5' }} rounded-[2.5rem] overflow-hidden shadow-xl">
+                class="bg-white dark:bg-zinc-900 border-2 {{ $isOverdue ? 'border-red-500' : 'border-slate-100 dark:border-white/5' }} rounded-[2.5rem] shadow-xl">
                 <div class="p-8 border-b border-slate-100 dark:border-white/5">
                     <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                         <div class="flex items-start gap-6 flex-1">
@@ -149,17 +143,19 @@ $completeAgenda = function ($id) {
                         </div>
 
                         <div class="flex items-center gap-3">
-                            @if (auth()->id() === $agenda->user_id && !$isAllStepsDone)
-                                <flux:button size="sm" variant="subtle" color="amber"
-                                    class="!rounded-xl font-bold uppercase"
-                                    wire:click="openIssueModal({{ $agenda->id }})">
-                                    Lapor Kendala
+                            {{-- Lapor kendala hanya muncul jika agenda belum benar-benar selesai langkah kerjanya --}}
+                            @if (auth()->id() === $agenda->user_id && ($hasSteps ? !$isAllStepsDone : true))
+                                <flux:button variant="subtle" wire:click="openIssueModal({{ $agenda->id }})"
+                                    class="!rounded-xl font-bold uppercase">
+                                    Kendala
                                 </flux:button>
                             @endif
+
+                            {{-- Tombol Arsipkan muncul jika steps selesai ATAU tidak punya steps --}}
                             @if ($isAllStepsDone)
-                                <flux:button size="md" variant="filled" color="emerald"
-                                    class="!rounded-xl font-black italic uppercase"
-                                    wire:click="completeAgenda({{ $agenda->id }})">
+                                <flux:button variant="filled" color="indigo"
+                                    wire:click="completeAgenda({{ $agenda->id }})"
+                                    class="!rounded-xl font-black italic uppercase">
                                     Arsipkan
                                 </flux:button>
                             @endif
@@ -167,14 +163,17 @@ $completeAgenda = function ($id) {
                     </div>
                 </div>
 
-                @if ($agenda->steps->isNotEmpty())
+                {{-- Tampilkan daftar langkah hanya jika ada datanya --}}
+                @if ($hasSteps)
                     <div class="grid grid-cols-1 md:grid-cols-4 bg-slate-50/50 dark:bg-white/5">
                         @foreach ($agenda->steps as $step)
                             <div
                                 class="p-6 border-r border-slate-100 dark:border-white/5 last:border-r-0 min-h-[100px]">
                                 <div class="flex justify-between items-start">
                                     <span
-                                        class="text-sm font-bold {{ $step->is_completed ? 'text-slate-300 line-through' : 'text-slate-700 dark:text-slate-200' }}">{{ $step->step_name }}</span>
+                                        class="text-sm font-bold {{ $step->is_completed ? 'text-slate-300 line-through' : 'text-slate-700 dark:text-slate-200' }}">
+                                        {{ $step->step_name }}
+                                    </span>
                                     <input type="checkbox" @checked($step->is_completed)
                                         wire:click.stop="clickStep({{ $step->id }})"
                                         class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 cursor-pointer focus:ring-0">
@@ -191,54 +190,40 @@ $completeAgenda = function ($id) {
         @endforelse
     </div>
 
-    {{-- MODAL GABUNGAN --}}
+    {{-- MODAL LAPORAN --}}
     <flux:modal wire:model="showIssueModal" class="md:w-[450px] !rounded-[2.5rem]">
-        <form wire:submit="submitIssue" class="space-y-6 p-2">
-            <div class="text-center">
-                <flux:heading size="lg" class="!font-black text-amber-500 uppercase italic">Laporan Monitoring
-                </flux:heading>
-                <div
-                    class="mt-2 px-4 py-2 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
-                    <p class="text-[10px] font-black uppercase text-slate-400">Deadline Saat Ini</p>
-                    <p class="font-bold text-red-500 italic uppercase">{{ $currentAgendaDeadline }} WIB</p>
-                </div>
-            </div>
-
+        <div class="space-y-6 p-2">
+            <flux:heading size="lg" class="!font-black text-indigo-600 uppercase italic text-center">Laporan
+                Kendala</flux:heading>
             <div class="space-y-4">
-                <flux:select label="Kategori Laporan" wire:model="issueCategory">
-                    <flux:select.option value="Teknis">Masalah Teknis</flux:select.option>
-                    <flux:select.option value="Data">Masalah Data</flux:select.option>
-                    <flux:select.option value="Koordinasi">Koordinasi Lapangan</flux:select.option>
+                <flux:select label="Kategori" wire:model="issueCategory">
+                    <flux:select.option value="Teknis">Teknis</flux:select.option>
+                    <flux:select.option value="Koordinasi">Koordinasi</flux:select.option>
                     <flux:select.option value="Lainnya">Lainnya</flux:select.option>
                 </flux:select>
-
-                <flux:input type="datetime-local" label="Ajukan Deadline Baru" wire:model="requestedDeadline" />
-                <flux:textarea label="Keterangan / Alasan" wire:model="issueDescription" rows="4" />
+                <flux:input type="datetime-local" label="Deadline Baru (Opsional)" wire:model="requestedDeadline" />
+                <flux:textarea label="Keterangan" wire:model="issueDescription" rows="4" />
             </div>
-
             <div class="flex gap-3">
-                <flux:modal.close>
-                    <flux:button variant="ghost" class="w-full !rounded-2xl font-bold uppercase">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button type="submit" variant="filled" color="amber"
-                    class="flex-1 !rounded-2xl font-black uppercase">Kirim Laporan</flux:button>
+                <flux:button variant="ghost" wire:click="$set('showIssueModal', false)" class="flex-1">Batal
+                </flux:button>
+                <flux:button variant="filled" color="indigo" wire:click="submitIssue"
+                    class="flex-1 font-black uppercase">Kirim</flux:button>
             </div>
-        </form>
+        </div>
     </flux:modal>
 
     {{-- MODAL CATATAN --}}
     <flux:modal wire:model="showNoteModal" class="md:w-[400px] !rounded-[2.5rem]">
         <div class="space-y-6 p-2">
-            <flux:heading size="lg" class="!font-black uppercase italic text-center text-indigo-600">Hasil Tahap
-                Ini</flux:heading>
-            <flux:textarea label="Catatan Progres" wire:model="stepNote" placeholder="Apa yang sudah dikerjakan?"
-                rows="3" />
+            <flux:heading size="lg" class="!font-black uppercase italic text-center text-indigo-600">Catatan
+                Progres</flux:heading>
+            <flux:textarea label="Apa hasil pekerjaan Anda?" wire:model="stepNote" rows="3" />
             <div class="flex gap-3">
-                <flux:modal.close>
-                    <flux:button variant="ghost" class="w-full !rounded-2xl font-bold uppercase">Batal</flux:button>
-                </flux:modal.close>
-                <flux:button variant="filled" color="indigo" class="flex-1 !rounded-2xl font-black uppercase"
-                    wire:click="saveStepCompletion">Simpan Progres</flux:button>
+                <flux:button variant="ghost" wire:click="$set('showNoteModal', false)" class="flex-1">Batal
+                </flux:button>
+                <flux:button variant="filled" color="indigo" wire:click="saveStepCompletion"
+                    class="flex-1 font-black uppercase">Simpan</flux:button>
             </div>
         </div>
     </flux:modal>
