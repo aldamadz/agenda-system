@@ -179,21 +179,23 @@ $exportPdf = function () {
 };
 ?>
 
-<div class="p-6 lg:p-10 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen">
+<div class="p-4 md:p-10 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen">
     {{-- Header --}}
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div class="flex flex-col md:flex-row md:items-center gap-6">
             <div>
-                <h1 class="text-3xl font-black uppercase italic text-indigo-600 tracking-tighter leading-none">
+                <h1
+                    class="text-2xl md:text-3xl font-black uppercase italic text-indigo-600 tracking-tighter leading-none">
                     {{ Carbon::parse($targetDate)->translatedFormat('F Y') }}
                 </h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Monitoring Agenda Kerja
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
+                    Monitoring Agenda Kerja
                 </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                 @if (auth()->user()->parent_id === null)
-                    <div class="w-full md:w-56">
+                    <div class="w-full sm:w-56">
                         <flux:select wire:model.live="filterUserId" placeholder="Pilih Anggota Tim">
                             <flux:select.option value="">Semua Anggota</flux:select.option>
                             @foreach ($this->subordinates as $sub)
@@ -202,29 +204,29 @@ $exportPdf = function () {
                         </flux:select>
                     </div>
                 @endif
-                <div class="w-full md:w-64">
+                <div class="w-full sm:w-64">
                     <flux:input wire:model.live.debounce.500ms="search" icon="magnifying-glass"
                         placeholder="Cari agenda atau PIC..." />
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center justify-between md:justify-end gap-3 w-full lg:w-auto">
             <flux:button variant="ghost" size="sm" icon="printer" wire:click="exportPdf"
-                class="text-red-600 font-bold uppercase">Cetak PDF</flux:button>
+                class="text-red-600 font-bold uppercase">PDF</flux:button>
+
             <div
-                class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1 rounded-xl md:rounded-2xl border border-slate-200 shadow-sm">
                 <flux:button variant="ghost" icon="chevron-left" wire:click="prevMonth" size="sm" />
-                <div class="relative flex items-center group">
+                <div class="relative flex items-center">
                     <flux:button variant="ghost" wire:click="$set('targetDate', '{{ now()->toDateTimeString() }}')"
-                        class="text-[10px] font-black uppercase px-4 border-r border-slate-100 rounded-none">Hari Ini
+                        class="text-[9px] md:text-[10px] font-black uppercase px-2 md:px-4 border-r border-slate-100 rounded-none">
+                        Hari Ini
                     </flux:button>
-                    <button onclick="document.getElementById('manualMonthPicker').showPicker()"
-                        class="px-2 hover:bg-slate-50 transition-colors rounded-r-xl">
-                        <flux:icon name="calendar" variant="mini"
-                            class="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
+                    <button onclick="document.getElementById('manualMonthPicker').showPicker()" class="px-2">
+                        <flux:icon name="calendar" variant="mini" class="w-4 h-4 text-slate-400" />
                     </button>
-                    <input type="month" id="manualMonthPicker" class="absolute inset-0 opacity-0 -z-10 cursor-pointer"
+                    <input type="month" id="manualMonthPicker" class="absolute inset-0 opacity-0 -z-10"
                         wire:change="goToMonth($event.target.value)"
                         value="{{ Carbon::parse($targetDate)->format('Y-m') }}">
                 </div>
@@ -234,25 +236,38 @@ $exportPdf = function () {
     </div>
 
     {{-- Kalender Grid --}}
-    <div class="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 overflow-hidden shadow-2xl">
+    <div
+        class="bg-white dark:bg-slate-900 rounded-3xl md:rounded-[3rem] border border-slate-200 overflow-hidden shadow-2xl">
+        {{-- Nama Hari (Hanya muncul di Desktop) --}}
         <div
-            class="grid grid-cols-7 bg-slate-50/50 border-b border-slate-100 font-black uppercase text-[10px] text-slate-400">
+            class="hidden md:grid grid-cols-7 bg-slate-50/50 border-b border-slate-100 font-black uppercase text-[10px] text-slate-400">
             @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $dayName)
                 <div class="py-4 text-center tracking-widest">{{ $dayName }}</div>
             @endforeach
         </div>
-        <div class="grid grid-cols-7 gap-px bg-slate-100 dark:bg-slate-800">
+
+        {{-- Grid Hari --}}
+        <div class="grid grid-cols-1 md:grid-cols-7 gap-px bg-slate-100 dark:bg-slate-800">
             @foreach ($this->calendarDays as $day)
+                {{-- Di Mobile, sembunyikan tanggal dari bulan lain agar tidak panjang --}}
                 <div
-                    class="bg-white dark:bg-slate-900 min-h-[160px] p-3 {{ !$day['isCurrentMonth'] ? 'opacity-25 grayscale' : '' }}">
-                    <div class="flex mb-3">
+                    class="bg-white dark:bg-slate-900 min-h-0 md:min-h-[160px] p-3
+                    {{ !$day['isCurrentMonth'] ? 'hidden md:block opacity-25 grayscale' : '' }}">
+
+                    <div class="flex items-center md:items-start justify-between md:mb-3">
                         <span
                             class="text-xs font-black p-2 {{ $day['isToday'] ? 'bg-indigo-600 text-white rounded-xl shadow-lg' : 'text-slate-400' }}">
                             {{ $day['date']->format('j') }}
                         </span>
+                        {{-- Indikator hari di Mobile --}}
+                        <span class="md:hidden text-[10px] font-bold text-slate-400 uppercase">
+                            {{ $day['date']->translatedFormat('l') }}
+                        </span>
                     </div>
-                    <div class="space-y-2">
-                        @foreach ($day['agendas'] as $agenda)
+
+                    <div class="space-y-2 mt-2 md:mt-0">
+                        @forelse ($day['agendas'] as $agenda)
+                            {{-- ... logika agenda (sama seperti kode Anda) ... --}}
                             @php
                                 $totalSteps = $agenda->steps->count();
                                 $currentRef = $day['date']->startOfDay();
@@ -276,19 +291,21 @@ $exportPdf = function () {
                                 $isFullyDone = $agenda->status === 'completed' && $percent == 100;
                             @endphp
                             <button wire:click="showDetail({{ $agenda->id }})"
-                                class="w-full text-left p-2.5 rounded-2xl border transition-all hover:scale-[1.03] {{ $isFullyDone ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-white border-slate-100 text-slate-600 shadow-sm' }}">
-                                <div class="flex justify-between items-start mb-1.5">
+                                class="w-full text-left p-3 rounded-2xl border transition-all active:scale-95 {{ $isFullyDone ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-white border-slate-100 text-slate-600 shadow-sm' }}">
+                                <div class="flex justify-between items-start mb-1">
                                     <span
-                                        class="text-[7px] font-black uppercase opacity-60 truncate">{{ $agenda->user->name }}</span>
-                                    <div
-                                        class="text-[7px] font-black {{ $percent == 100 ? 'text-emerald-600' : 'text-indigo-600' }}">
-                                        {{ $percent }}%</div>
+                                        class="text-[7px] font-black uppercase opacity-60 truncate max-w-[70%]">{{ $agenda->user->name }}</span>
+                                    <span
+                                        class="text-[7px] font-black {{ $percent == 100 ? 'text-emerald-600' : 'text-indigo-600' }}">{{ $percent }}%</span>
                                 </div>
                                 <div
-                                    class="text-[9px] font-black leading-tight {{ $isFullyDone ? 'line-through opacity-50' : '' }}">
-                                    {{ Str::limit($agenda->title, 25) }}</div>
+                                    class="text-[10px] md:text-[9px] font-black leading-tight {{ $isFullyDone ? 'line-through opacity-50' : '' }}">
+                                    {{ Str::limit($agenda->title, 40) }}
+                                </div>
                             </button>
-                        @endforeach
+                        @empty
+                            {{-- Di mobile, beri keterangan kosong jika perlu, atau biarkan ringkas --}}
+                        @endforelse
                     </div>
                 </div>
             @endforeach
@@ -296,26 +313,30 @@ $exportPdf = function () {
     </div>
 
     {{-- Modal Detail --}}
-    <flux:modal name="detail-agenda" class="min-w-[450px] md:min-w-[600px] !rounded-[3rem]">
+    <flux:modal name="detail-agenda" class="w-full max-w-lg !rounded-3xl md:!rounded-[3rem]">
+        {{-- Gunakan max-w-lg dan w-full agar modal fleksibel di HP --}}
         @if ($this->selectedAgenda)
             <div class="space-y-6">
                 <div
-                    class="p-8 rounded-[3rem] text-white shadow-2xl {{ $this->selectedAgenda->status === 'completed' ? 'bg-emerald-600' : 'bg-indigo-600' }}">
-                    <h2 class="text-3xl font-black uppercase italic leading-none tracking-tighter">
-                        {{ $this->selectedAgenda->title }}</h2>
-                    <p class="text-[10px] mt-4 uppercase font-bold opacity-80 italic">PIC:
+                    class="p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] text-white shadow-2xl {{ $this->selectedAgenda->status === 'completed' ? 'bg-emerald-600' : 'bg-indigo-600' }}">
+                    <h2 class="text-xl md:text-3xl font-black uppercase italic leading-tight tracking-tighter">
+                        {{ $this->selectedAgenda->title }}
+                    </h2>
+                    <p class="text-[10px] mt-4 uppercase font-bold opacity-80">PIC:
                         {{ $this->selectedAgenda->user->name }}</p>
                 </div>
-                <div class="px-4 space-y-3">
+
+                <div class="px-2 md:px-4 space-y-3 max-h-[50vh] overflow-y-auto">
+                    {{-- Tambahkan max-h agar modal tidak melebihi tinggi layar HP --}}
                     @foreach ($this->selectedAgenda->steps as $step)
                         <div
-                            class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div class="flex items-center gap-4">
+                            class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 text-sm">
+                            <div class="flex items-center gap-3">
                                 <flux:icon name="{{ $step->is_completed ? 'check-circle' : 'minus-circle' }}"
                                     variant="mini"
                                     class="w-5 h-5 {{ $step->is_completed ? 'text-emerald-500' : 'text-slate-300' }}" />
                                 <div>
-                                    <div class="text-sm font-bold text-slate-700">{{ $step->step_name }}</div>
+                                    <div class="font-bold text-slate-700 leading-snug">{{ $step->step_name }}</div>
                                     @if ($step->duration)
                                         <div class="text-[9px] text-indigo-600 font-bold uppercase mt-1">Estimasi:
                                             {{ $step->duration }}</div>
@@ -325,6 +346,7 @@ $exportPdf = function () {
                         </div>
                     @endforeach
                 </div>
+
                 <div class="p-4">
                     <flux:modal.close class="w-full">
                         <flux:button class="w-full !rounded-2xl font-black uppercase italic">Tutup</flux:button>
