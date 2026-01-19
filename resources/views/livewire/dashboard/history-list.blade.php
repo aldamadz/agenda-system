@@ -95,16 +95,18 @@ $resetFilters = fn() => [($this->filterMode = 'all'), ($this->search = ''), $thi
 
     {{-- Filter Toolbar --}}
     <div
-        class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 p-4 rounded-[2rem] flex flex-wrap items-center gap-4 shadow-sm relative z-20">
+        class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 p-4 rounded-[1.5rem] md:rounded-[2rem] flex flex-wrap items-center gap-4 shadow-sm relative z-10">
+        {{-- Label Filter - Sembunyi di mobile kecil jika terlalu sempit --}}
         <div
-            class="flex items-center gap-2 pr-4 border-r border-slate-100 dark:border-zinc-700 text-slate-500 dark:text-zinc-400">
+            class="hidden sm:flex items-center gap-2 pr-4 border-r border-slate-100 dark:border-zinc-700 text-slate-500 dark:text-zinc-400">
             <flux:icon.funnel variant="micro" class="size-4" />
             <span class="text-[10px] font-black uppercase">Filter</span>
         </div>
 
-        <div class="relative min-w-[150px]">
+        {{-- Mode Selector - Full width di mobile --}}
+        <div class="relative w-full sm:w-auto min-w-[150px]">
             <select wire:model.live="filterMode"
-                class="w-full appearance-none bg-slate-100 dark:bg-zinc-800 text-[10px] font-black uppercase border border-slate-200 dark:border-zinc-600 rounded-xl pl-4 pr-10 py-2.5 text-slate-700 dark:text-zinc-200 focus:ring-2 focus:border-emerald-500 outline-none cursor-pointer">
+                class="w-full appearance-none bg-slate-100 dark:bg-zinc-800 text-[10px] font-black uppercase border border-slate-200 dark:border-zinc-600 rounded-xl pl-4 pr-10 py-2.5 text-slate-700 dark:text-zinc-200 focus:ring-2 focus:border-emerald-500 outline-none cursor-pointer transition-all">
                 <option value="all">Semua Waktu</option>
                 <option value="daily">Harian</option>
                 <option value="monthly">Bulanan</option>
@@ -116,30 +118,34 @@ $resetFilters = fn() => [($this->filterMode = 'all'), ($this->search = ''), $thi
             </div>
         </div>
 
+        {{-- Input Tanggal Responsif --}}
         @if ($filterMode !== 'all')
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                 @if ($filterMode === 'daily')
                     <input type="date" wire:model.live="filterDate"
-                        class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-600 rounded-xl text-[10px] font-black px-4 py-2.5 outline-none color-scheme-dark">
+                        class="w-full sm:w-auto bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-600 rounded-xl text-[10px] font-black px-4 py-2.5 outline-none color-scheme-dark">
                 @elseif($filterMode === 'monthly')
                     <input type="month" wire:model.live="filterMonth"
-                        class="bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-600 rounded-xl text-[10px] font-black px-4 py-2.5 outline-none color-scheme-dark">
+                        class="w-full sm:w-auto bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-600 rounded-xl text-[10px] font-black px-4 py-2.5 outline-none color-scheme-dark">
                 @elseif($filterMode === 'range')
                     <div
-                        class="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-600 rounded-xl px-2">
+                        class="flex flex-col sm:flex-row items-center gap-2 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-600 rounded-xl px-2 w-full sm:w-auto">
                         <input type="date" wire:model.live="filterStart"
-                            class="bg-transparent text-slate-900 dark:text-white text-[10px] font-black p-2 outline-none color-scheme-dark">
-                        <span class="text-zinc-400">—</span>
+                            class="w-full sm:w-auto bg-transparent text-slate-900 dark:text-white text-[10px] font-black p-2 outline-none color-scheme-dark">
+                        <span class="hidden sm:block text-zinc-400">—</span>
                         <input type="date" wire:model.live="filterEnd"
-                            class="bg-transparent text-slate-900 dark:text-white text-[10px] font-black p-2 outline-none color-scheme-dark">
+                            class="w-full sm:w-auto bg-transparent text-slate-900 dark:text-white text-[10px] font-black p-2 outline-none color-scheme-dark">
                     </div>
                 @endif
             </div>
         @endif
 
+        {{-- Reset Button --}}
         @if ($filterMode !== 'all' || $search)
             <button wire:click="resetFilters"
-                class="ml-auto text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 rounded-xl transition-all active:scale-95">Reset</button>
+                class="w-full sm:w-auto sm:ml-auto text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 px-4 py-2 rounded-xl transition-all active:scale-95">
+                Reset Filter
+            </button>
         @endif
     </div>
 

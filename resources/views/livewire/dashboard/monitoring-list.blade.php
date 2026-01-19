@@ -17,6 +17,18 @@ state([
     'stepNote' => '',
 ]);
 
+// Helper untuk membuat ActivityLog secara konsisten
+$logActivity = function ($agendaId, $action, $description, $icon = 'document-text', $color = 'indigo') {
+    ActivityLog::create([
+        'user_id' => auth()->id(),
+        'agenda_id' => $agendaId,
+        'action' => $action,
+        'description' => $description,
+        'icon' => $icon,
+        'color' => $color,
+    ]);
+};
+
 $openIssueModal = function ($id) {
     $agenda = Agenda::findOrFail($id);
     $this->selectedAgendaId = $id;
@@ -44,16 +56,18 @@ $monitoringAgendas = computed(function () {
     return $query->latest()->get();
 });
 
-$submitIssue = function () {
+$submitIssue = function () use ($logActivity) {
     $this->validate([
         'issueCategory' => 'required',
         'issueDescription' => 'required|min:5',
         'requestedDeadline' => 'nullable',
     ]);
 
+    $agenda = Agenda::findOrFail($this->selectedAgendaId);
     $isExtension = !empty($this->requestedDeadline);
     $now = now();
 
+    // 1. Masuk ke AgendaLog (Detail Agenda)
     AgendaLog::create([
         'agenda_id' => $this->selectedAgendaId,
         'log_date' => $now->format('Y-m-d'),
@@ -63,14 +77,23 @@ $submitIssue = function () {
         'issue_description' => $this->issueDescription,
     ]);
 
+    // 2. Masuk ke ActivityLog (Dashboard Feed)
+    $actionType = $isExtension ? 'Request Extension' : 'Report Issue';
+    $desc = auth()->user()->name . ' melaporkan kendala pada agenda: ' . $agenda->title;
+    $logActivity($agenda->id, $actionType, $desc, 'exclamation-circle', 'amber');
+
     $this->reset(['showIssueModal', 'selectedAgendaId', 'issueCategory', 'issueDescription', 'requestedDeadline']);
     $this->dispatch('swal', ['icon' => 'success', 'title' => 'Laporan Terkirim']);
 };
 
-$clickStep = function ($stepId) {
-    $step = AgendaStep::findOrFail($stepId);
+$clickStep = function ($stepId) use ($logActivity) {
+    $step = AgendaStep::with('agenda')->findOrFail($stepId);
+
     if ($step->is_completed) {
         $step->update(['is_completed' => false, 'completed_at' => null, 'notes' => null]);
+
+        // Log pembatalan
+        $logActivity($step->agenda_id, 'Step Reopened', auth()->user()->name . ' membuka kembali langkah: ' . $step->step_name, 'arrow-path', 'slate');
     } else {
         $this->editingStepId = $stepId;
         $this->stepNote = '';
@@ -78,10 +101,11 @@ $clickStep = function ($stepId) {
     }
 };
 
-$saveStepCompletion = function () {
-    $step = AgendaStep::findOrFail($this->editingStepId);
+$saveStepCompletion = function () use ($logActivity) {
+    $step = AgendaStep::with('agenda')->findOrFail($this->editingStepId);
     $step->update(['is_completed' => true, 'completed_at' => now(), 'notes' => $this->stepNote]);
 
+    // 1. Masuk ke AgendaLog
     AgendaLog::create([
         'agenda_id' => $step->agenda_id,
         'log_date' => now()->format('Y-m-d'),
@@ -91,12 +115,20 @@ $saveStepCompletion = function () {
         'progress_note' => 'Step Selesai',
     ]);
 
+    // 2. Masuk ke ActivityLog
+    $logActivity($step->agenda_id, 'Step Done', auth()->user()->name . ' menyelesaikan langkah: ' . $step->step_name, 'check-circle', 'emerald');
+
     $this->reset(['showNoteModal', 'editingStepId', 'stepNote']);
     $this->dispatch('swal', ['icon' => 'success', 'title' => 'Progres Disimpan']);
 };
 
-$completeAgenda = function ($id) {
-    Agenda::findOrFail($id)->update(['status' => 'completed']);
+$completeAgenda = function ($id) use ($logActivity) {
+    $agenda = Agenda::findOrFail($id);
+    $agenda->update(['status' => 'completed']);
+
+    // Log Penutupan Agenda
+    $logActivity($id, 'Agenda Completed', auth()->user()->name . ' telah merampungkan agenda: ' . $agenda->title, 'archive-box', 'indigo');
+
     $this->dispatch('swal', ['icon' => 'success', 'title' => 'Agenda Selesai & Diarsipkan']);
 };
 ?>
