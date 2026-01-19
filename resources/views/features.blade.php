@@ -24,16 +24,28 @@
                 <span class="text-xl font-bold tracking-tighter dark:text-white transition-colors">AGENDA<span
                         class="text-indigo-600">.</span></span>
             </div>
-            <a href="{{ route('login') }}"
-                class="text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-                Kembali ke Login
-            </a>
+
+            <div class="flex items-center gap-6">
+                <a href="/documentation"
+                    class="text-sm font-bold text-indigo-600 hover:text-indigo-500 transition-colors cursor-pointer flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                        </path>
+                    </svg>
+                    Dokumentasi
+                </a>
+                <a href="{{ route('login') }}"
+                    class="text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+                    Kembali ke Login
+                </a>
+            </div>
         </div>
 
         <header class="relative z-20 pt-24 pb-20 px-8 max-w-5xl mx-auto text-center select-none">
             <h2
                 class="inline-block px-4 py-1.5 mb-6 text-xs font-black tracking-[0.2em] uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-500/20">
-                Product Documentation
+                Product Features
             </h2>
             <h1 class="text-5xl md:text-7xl font-black tracking-tight text-zinc-900 dark:text-white mb-8 leading-[1.1]">
                 Satu Sistem. <br /> <span class="text-zinc-400 dark:text-zinc-600">Kendali Penuh.</span>
@@ -183,7 +195,8 @@
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-8 w-full md:w-auto">
                             <div class="text-center group-hover:scale-110 transition-transform">
                                 <div class="text-2xl font-black dark:text-white">Real-time</div>
-                                <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Livewire
+                                <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">
+                                    Livewire
                                     Volt</div>
                             </div>
                             <div class="text-center group-hover:scale-110 transition-transform animation-delay-500">
@@ -209,6 +222,17 @@
                     class="px-10 py-5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-2xl cursor-pointer">
                     Daftarkan Tim Saya
                 </a>
+
+                <a href="/documentation"
+                    class="px-10 py-5 bg-indigo-600 text-white font-black rounded-2xl transition-all hover:bg-indigo-700 hover:scale-105 active:scale-95 shadow-2xl cursor-pointer flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                        </path>
+                    </svg>
+                    Baca Dokumentasi
+                </a>
+
                 <a href="{{ route('login') }}"
                     class="px-10 py-5 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 font-black rounded-2xl transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">
                     Masuk Dashboard
@@ -217,51 +241,3 @@
         </footer>
     </div>
 </x-layouts.auth>
-
-<style>
-    /* Reset & Scoping */
-    main,
-    header,
-    footer {
-        max-width: 1200px !important;
-        margin: 0 auto !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-    }
-
-    body {
-        font-family: 'Inter', system-ui, sans-serif;
-    }
-
-    /* Smooth Scroll */
-    html {
-        scroll-behavior: smooth;
-    }
-
-    /* Webkit Scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #d4d4d8;
-        border-radius: 10px;
-    }
-
-    .dark ::-webkit-scrollbar-thumb {
-        background: #27272a;
-    }
-
-    /* Cursor Management */
-    .cursor-default {
-        cursor: default;
-    }
-
-    .cursor-pointer {
-        cursor: pointer;
-    }
-</style>

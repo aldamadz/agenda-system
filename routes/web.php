@@ -16,6 +16,14 @@ Route::get('/', function () {
 Route::get('/email', function () { return view('mail'); });
 Route::get('/features', function () { return view('features'); });
 
+Route::get('/documentation', function () {
+    return view('documentation', [
+        'totalAgenda' => \App\Models\Agenda::count(),
+        'systemStatus' => 'Active',
+        'lastBackup' => now()->format('d M Y'),
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
