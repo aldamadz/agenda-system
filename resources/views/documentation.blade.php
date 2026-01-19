@@ -1,263 +1,317 @@
 <x-layouts.auth>
-    <style>
-        body,
-        html {
-            overflow: hidden !important;
-            height: 100%;
-        }
+    <div x-data="{
+        lastPos: 0,
+        showNav: true,
+        showTopButton: false
+    }"
+        @scroll="
+            let currentPos = $el.scrollTop;
+            showNav = currentPos < lastPos || currentPos < 50;
+            lastPos = currentPos;
+            showTopButton = currentPos > 400;
+         "
+        class="fixed inset-0 w-screen h-screen overflow-y-auto bg-white dark:bg-[#09090b] transition-colors duration-500 cursor-default selection:bg-indigo-100 dark:selection:bg-indigo-500/30 scroll-smooth">
 
-        main,
-        .container {
-            max-width: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        .content-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .content-scroll::-webkit-scrollbar-thumb {
-            background: #4f46e5;
-            border-radius: 10px;
-        }
-
-        .nav-active {
-            background: #4f46e5 !important;
-            color: white !important;
-            font-weight: 800;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-        }
-
-        .nav-active svg {
-            color: white !important;
-        }
-
-        .section-divider {
-            border-left: 4px solid #4f46e5;
-            padding-left: 1.5rem;
-        }
-    </style>
-
-    <div class="absolute inset-0 w-screen h-screen bg-white dark:bg-[#09090b] z-[9999] flex overflow-hidden font-sans">
-
-        <aside
-            class="w-72 h-full border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50 dark:bg-[#0d0d0f] shrink-0">
-            <div class="p-8">
-                <div class="flex items-center gap-3 mb-2">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-width="2"
-                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                            </path>
-                        </svg>
-                    </div>
-                    <div>
-                        <span
-                            class="block font-black text-lg tracking-tighter dark:text-white uppercase leading-none">SATU
-                            AGENDA</span>
-                        <span class="text-[9px] font-bold text-indigo-600 tracking-widest uppercase">Marison
-                            Group</span>
-                    </div>
-                </div>
+        <div class="fixed inset-0 overflow-hidden pointer-events-none select-none">
+            <div
+                class="absolute top-[-15%] right-[-5%] w-[700px] h-[700px] bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-[120px]">
             </div>
-
-            <nav class="flex-1 px-4 space-y-2 mt-4 text-zinc-500">
-                <p class="text-[10px] font-black uppercase tracking-widest px-4 mb-2">Struktur Modul</p>
-                <a href="#staff-area"
-                    class="nav-item nav-active flex items-center gap-3 p-3.5 rounded-2xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
-                        </path>
-                    </svg>
-                    <span class="font-bold text-[11px] uppercase tracking-wider">Modul Operasional</span>
-                </a>
-                <a href="#manager-area" class="nav-item flex items-center gap-3 p-3.5 rounded-2xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                        </path>
-                    </svg>
-                    <span class="font-bold text-[11px] uppercase tracking-wider">Modul Manajerial</span>
-                </a>
-                <a href="#admin-area" class="nav-item flex items-center gap-3 p-3.5 rounded-2xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2"
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
-                        </path>
-                    </svg>
-                    <span class="font-bold text-[11px] uppercase tracking-wider">Modul Administrasi</span>
-                </a>
-                <a href="#office" class="nav-item flex items-center gap-3 p-3.5 rounded-2xl transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-width="2"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
-                        </path>
-                    </svg>
-                    <span class="font-bold text-[11px] uppercase tracking-wider">Lokasi Kantor</span>
-                </a>
-            </nav>
-
-            <div class="p-6">
-                <a href="{{ route('dashboard') }}"
-                    class="flex items-center justify-center w-full py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
-                    Akses Dashboard
-                </a>
-            </div>
-        </aside>
-
-        <div id="scroll-ctx" class="flex-1 overflow-y-auto content-scroll bg-white dark:bg-[#09090b] scroll-smooth">
-            <div class="max-w-4xl mx-auto px-12 py-20 space-y-32">
-
-                <section id="hero" class="space-y-8">
-                    <div
-                        class="inline-block px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-full">
-                        Executive Summary
-                    </div>
-                    <h1 class="text-7xl font-black dark:text-white leading-[0.85] tracking-tighter uppercase">
-                        Sistem Penugasan<br />Terintegrasi<br /><span class="text-indigo-600">Marison Group.</span>
-                    </h1>
-                    <div class="grid grid-cols-2 gap-6 pt-10">
-                        <div
-                            class="p-8 bg-zinc-50 dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Total Agenda
-                            </p>
-                            <h4 class="text-4xl font-black dark:text-white leading-none">{{ $totalAgenda }} <span
-                                    class="text-xs text-indigo-600 block mt-1 uppercase">Entri Penugasan</span></h4>
-                        </div>
-                        <div
-                            class="p-8 bg-zinc-50 dark:bg-zinc-900 rounded-[2.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">Sinkronisasi
-                                Terakhir</p>
-                            <h4 class="text-3xl font-black dark:text-white leading-none uppercase">{{ $lastBackup }}
-                            </h4>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="staff-area" class="scroll-mt-10 space-y-12">
-                    <div class="section-divider">
-                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.4em] mb-2">Bagian I:
-                            Operasional Lapangan</h2>
-                        <h3 class="text-4xl font-black dark:text-white uppercase tracking-tighter">Eksekusi dan
-                            Pelaporan Tugas</h3>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div
-                            class="p-8 bg-zinc-50 dark:bg-zinc-900 rounded-[2rem] border border-zinc-100 dark:border-zinc-800">
-                            <h4 class="font-black text-sm uppercase dark:text-white mb-4 tracking-widest">Penjadwalan
-                                Terstruktur</h4>
-                            <p class="text-sm text-zinc-500 leading-relaxed">Staf dapat mengelola jadwal kerja melalui
-                                kalender interaktif untuk memastikan setiap tugas memiliki alokasi waktu yang jelas dan
-                                tidak berbenturan.</p>
-                        </div>
-                        <div
-                            class="p-8 bg-zinc-50 dark:bg-zinc-900 rounded-[2rem] border border-zinc-100 dark:border-zinc-800">
-                            <h4 class="font-black text-sm uppercase dark:text-white mb-4 tracking-widest">Monitoring
-                                Progres</h4>
-                            <p class="text-sm text-zinc-500 leading-relaxed">Dashboard memberikan visibilitas penuh
-                                terhadap daftar tugas yang sedang berjalan maupun riwayat pekerjaan yang telah
-                                diselesaikan secara transparan.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="manager-area" class="scroll-mt-10 space-y-12">
-                    <div class="p-12 bg-zinc-900 rounded-[3.5rem] text-white shadow-2xl overflow-hidden">
-                        <h2 class="text-xs font-black text-indigo-400 uppercase tracking-[0.4em] mb-6">Bagian II:
-                            Kendali Manajerial</h2>
-                        <h3 class="text-4xl font-black uppercase tracking-tighter leading-none mb-10">Validasi Hasil
-                            &<br />Manajemen Kendala.</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div class="space-y-4">
-                                <h5 class="font-black text-xs uppercase tracking-widest text-indigo-400">Verifikasi
-                                    Berjenjang</h5>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Setiap laporan penugasan melewati
-                                    filter persetujuan manajer untuk menjamin kualitas dan keabsahan pekerjaan staf di
-                                    lapangan.</p>
-                            </div>
-                            <div class="space-y-4">
-                                <h5 class="font-black text-xs uppercase tracking-widest text-red-500">Pusat Resolusi Isu
-                                </h5>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Tersedia ruang khusus untuk memantau
-                                    kendala teknis lapangan agar pimpinan dapat memberikan instruksi dan solusi secara
-                                    cepat.</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="admin-area" class="scroll-mt-10 space-y-12">
-                    <div class="section-divider">
-                        <h2 class="text-xs font-black text-indigo-600 uppercase tracking-[0.4em] mb-2">Bagian III:
-                            Administrasi Pusat</h2>
-                        <h3 class="text-4xl font-black dark:text-white uppercase tracking-tighter">Keamanan Data & Tata
-                            Kelola User</h3>
-                    </div>
-                    <div class="grid grid-cols-1 gap-6">
-                        <div class="p-10 border border-zinc-100 dark:border-zinc-800 rounded-[3rem] shadow-sm">
-                            <h4 class="font-black text-lg dark:text-white uppercase tracking-tighter mb-4">Otoritas
-                                Pengguna & Audit Trail</h4>
-                            <p class="text-sm text-zinc-500 leading-relaxed">Admin memiliki kendali penuh atas manajemen
-                                peran pengguna dan pemantauan log aktivitas sistem untuk menjamin keamanan informasi
-                                perusahaan.</p>
-                        </div>
-                        <div class="p-10 border border-zinc-100 dark:border-zinc-800 rounded-[3rem] shadow-sm">
-                            <h4 class="font-black text-lg dark:text-white uppercase tracking-tighter mb-4">Personalisasi
-                                & Keamanan Berlapis</h4>
-                            <p class="text-sm text-zinc-500 leading-relaxed">Penyediaan pengaturan profil, tampilan
-                                sistem, hingga pengamanan akun melalui autentikasi dua faktor untuk melindungi data
-                                strategis.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="office"
-                    class="scroll-mt-10 space-y-10 pb-20 border-t border-zinc-100 dark:border-zinc-800 pt-20">
-                    <div class="text-center space-y-4">
-                        <h3 class="text-5xl font-black dark:text-white uppercase tracking-tighter leading-none">Pusat
-                            Operasional<br /><span class="text-zinc-400">Marison Bangun Nusantara.</span></h3>
-                    </div>
-
-                    <div class="flex justify-center">
-                        <div
-                            class="bg-zinc-100 dark:bg-zinc-800 rounded-[3.5rem] overflow-hidden border-8 border-white dark:border-zinc-800 shadow-2xl inline-block">
-                            <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3955.6144882530666!2d110.21544159999999!3d-7.507739600000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7a8fd18d272843%3A0x79e8f5b6551b88ad!2sKantor%20Pusat%20Marison%20Group!5e0!3m2!1sid!2sid!4v1768794634939!5m2!1sid!2sid"
-                                width="600" height="400" style="border:0;" allowfullscreen="" loading="lazy"
-                                referrerpolicy="no-referrer-when-downgrade">
-                            </iframe>
-                        </div>
-                    </div>
-                    <p class="text-[10px] font-black text-zinc-400 uppercase tracking-[0.5em] text-center">Titik
-                        Koordinat Resmi Kantor Pusat Marison</p>
-                </section>
-
-                <footer class="text-center pb-20">
-                    <div class="h-px w-24 bg-zinc-200 dark:bg-zinc-800 mx-auto mb-8"></div>
-                    <p class="text-[9px] font-black text-zinc-400 uppercase tracking-[0.8em]">
-                        Internal Report • PT Marison Bangun Nusantara • 2026
-                    </p>
-                </footer>
+            <div
+                class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-500/5 rounded-full blur-[120px]">
             </div>
         </div>
+
+        <nav x-show="showNav" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="-translate-y-full" x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="-translate-y-full"
+            class="fixed top-0 z-50 w-full bg-white/60 dark:bg-[#09090b]/60 backdrop-blur-md border-b border-zinc-200/50 dark:border-white/5">
+            <div class="max-w-7xl mx-auto px-8 h-20 flex justify-between items-center">
+                <div class="flex items-center gap-2 group cursor-pointer" onclick="window.location.href='/'">
+                    <div
+                        class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-6 shadow-lg shadow-indigo-500/20 text-white font-bold text-sm">
+                        SA
+                    </div>
+                    <span class="text-xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase">
+                        Sistem <span class="text-indigo-600">Agenda</span>
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-6">
+                    @auth
+                        <a href="/dashboard"
+                            class="px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-black rounded-full uppercase tracking-widest hover:scale-105 transition-all shadow-lg">
+                            Dashboard
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}"
+                            class="text-sm font-black text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors uppercase tracking-widest">
+                            Login
+                        </a>
+                    @endauth
+                </div>
+            </div>
+        </nav>
+
+        <button x-show="showTopButton" x-cloak
+            @click="$el.closest('.overflow-y-auto').scrollTo({top: 0, behavior: 'smooth'})"
+            class="fixed bottom-8 right-8 z-[60] w-14 h-14 bg-indigo-600 text-white rounded-2xl shadow-2xl shadow-indigo-600/40 flex items-center justify-center hover:bg-indigo-700 hover:-translate-y-1 active:scale-95 transition-all outline-none border-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"></path>
+            </svg>
+        </button>
+
+        <header class="relative z-20 pt-44 pb-20 px-8 max-w-5xl mx-auto text-center select-none">
+            <h2
+                class="inline-block px-4 py-1.5 mb-6 text-xs font-black tracking-[0.2em] uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-500/20">
+                Dokumentasi Alur
+            </h2>
+            <h1
+                class="text-5xl md:text-7xl font-black tracking-tight text-zinc-900 dark:text-white mb-8 leading-[1.1] uppercase">
+                Prosedur & <br /> <span class="text-zinc-400 dark:text-zinc-600">Operasional.</span>
+            </h1>
+            <p
+                class="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-medium">
+                Sistem Manajemen Agenda Marison mengoptimalkan efisiensi kerja melalui pemisahan fungsi input data dan
+                visualisasi monitoring agenda.
+            </p>
+        </header>
+
+        <main class="relative z-20 max-w-7xl mx-auto px-8 pb-40">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+
+                <div
+                    class="md:col-span-12 p-10 bg-zinc-50 dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800 rounded-[3rem] group">
+                    <div class="flex flex-col lg:flex-row gap-12">
+                        <div class="lg:w-1/3">
+                            <span
+                                class="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/20 text-2xl mb-6">01</span>
+                            <h3 class="text-3xl font-black dark:text-white mb-4 uppercase tracking-tighter">Entry Agenda
+                                & Pelaporan</h3>
+                            <p
+                                class="text-zinc-500 dark:text-zinc-400 font-bold text-sm leading-relaxed uppercase tracking-tight">
+                                Setiap kegiatan wajib direkam melalui modul pembuatan agenda pusat untuk menjaga
+                                integritas data harian.</p>
+                        </div>
+                        <div class="lg:w-2/3 grid md:grid-cols-2 gap-6">
+                            <div
+                                class="p-8 bg-white dark:bg-zinc-800/50 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-700 hover:border-indigo-500 transition-all">
+                                <div
+                                    class="w-10 h-10 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center mb-4 font-black text-xs">
+                                    ADD</div>
+                                <h4 class="font-black text-zinc-900 dark:text-white uppercase mb-3 tracking-tighter">
+                                    Halaman Create</h4>
+                                <ul
+                                    class="space-y-3 text-[11px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-tight">
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Akses via rute
+                                        /agenda/create
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Input judul, jam, dan
+                                        deskripsi
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Kategorisasi tugas
+                                        otomatis
+                                    </li>
+                                </ul>
+                            </div>
+                            <div
+                                class="p-8 bg-white dark:bg-zinc-800/50 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-700 hover:border-indigo-500 transition-all">
+                                <div
+                                    class="w-10 h-10 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center mb-4 font-black text-xs">
+                                    LST</div>
+                                <h4 class="font-black text-zinc-900 dark:text-white uppercase mb-3 tracking-tighter">
+                                    Monitoring Progres</h4>
+                                <ul
+                                    class="space-y-3 text-[11px] font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-tight">
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Update status To-Do
+                                        ke Done
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Dashboard ringkasan
+                                        harian
+                                    </li>
+                                    <li class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full"></div> Notifikasi deadline
+                                        tugas
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="md:col-span-12 lg:col-span-8 p-12 bg-purple-600 rounded-[4rem] text-white shadow-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -mr-32 -mt-32">
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-10">
+                            <span
+                                class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-2xl shadow-lg">02</span>
+                            <h3 class="text-4xl font-black uppercase tracking-tighter leading-none">
+                                Visualisasi<br>Kalender</h3>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-12">
+                            <div>
+                                <h4 class="font-black text-purple-200 uppercase text-[10px] tracking-[0.2em] mb-4">
+                                    Interaktivitas View</h4>
+                                <p class="text-sm font-bold leading-relaxed opacity-90 mb-6 uppercase tracking-tight">
+                                    Fokus utama kalender adalah penyajian data. Pengguna dapat meninjau detail agenda
+                                    secara mendalam tanpa risiko perubahan data yang tidak disengaja.
+                                </p>
+                                <div
+                                    class="inline-flex items-center px-4 py-2 bg-white text-purple-600 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">
+                                    Read-Only View</div>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-purple-200 uppercase text-[10px] tracking-[0.2em] mb-4">
+                                    Document Export</h4>
+                                <p class="text-sm font-bold leading-relaxed opacity-90 mb-6 uppercase tracking-tight">
+                                    Fitur ekspor PDF memungkinkan pembuatan laporan agenda harian atau mingguan secara
+                                    instan langsung dari tampilan kalender.
+                                </p>
+                                <div
+                                    class="inline-flex items-center px-4 py-2 bg-white/20 border border-white/30 rounded-xl font-black text-[10px] uppercase tracking-widest text-white backdrop-blur-sm">
+                                    PDF Engine Ready</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="md:col-span-12 lg:col-span-4 p-10 bg-zinc-900 text-white rounded-[4rem] flex flex-col justify-between group hover:border-indigo-500 border border-transparent transition-all">
+                    <div>
+                        <div class="flex items-center gap-4 mb-8">
+                            <span
+                                class="w-12 h-12 rounded-xl bg-white text-zinc-900 flex items-center justify-center font-black text-xl">03</span>
+                            <h3 class="text-2xl font-black uppercase tracking-tighter">Admin Core</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div
+                                class="p-6 bg-white/5 border border-white/10 rounded-3xl group-hover:bg-indigo-500/10 transition-colors">
+                                <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">
+                                    Hierarchy Control</h5>
+                                <p class="text-[11px] font-bold opacity-70 uppercase leading-relaxed">Kelola relasi
+                                    Parent-Child untuk otoritas verifikasi agenda antar jabatan.</p>
+                            </div>
+                            <div
+                                class="p-6 bg-white/5 border border-white/10 rounded-3xl group-hover:bg-indigo-500/10 transition-colors">
+                                <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Audit
+                                    Logs</h5>
+                                <p class="text-[11px] font-bold opacity-70 uppercase leading-relaxed">Pantau histori
+                                    pembuatan agenda dan aktivitas login pengguna secara real-time.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-12 grid md:grid-cols-2 gap-8">
+                    <div
+                        class="p-10 bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800 rounded-[3rem] group hover:border-emerald-500 transition-all">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div
+                                class="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center font-black text-xs">
+                                2FA</div>
+                            <h4 class="font-black text-zinc-900 dark:text-white uppercase tracking-tighter text-xl">
+                                Keamanan Lapis Dua</h4>
+                        </div>
+                        <p
+                            class="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-tight leading-relaxed mb-6">
+                            Proteksi akun menggunakan Two-Factor Authentication (Laravel Fortify) untuk memastikan data
+                            agenda tetap aman dan privat.
+                        </p>
+                        <div
+                            class="px-4 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest inline-block">
+                            Security Level: High</div>
+                    </div>
+
+                    <div
+                        class="p-10 bg-white dark:bg-[#121214] border border-zinc-200 dark:border-zinc-800 rounded-[3rem] group hover:border-indigo-500 transition-all">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div
+                                class="w-10 h-10 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center font-black text-xs">
+                                UI</div>
+                            <h4 class="font-black text-zinc-900 dark:text-white uppercase tracking-tighter text-xl">
+                                Opsi Tampilan</h4>
+                        </div>
+                        <p
+                            class="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-tight leading-relaxed mb-6">
+                            Personalisasi antarmuka melalui pengaturan Appearance dengan dukungan penuh untuk Dark Mode
+                            dan Light Mode.
+                        </p>
+                        <div class="flex gap-2">
+                            <div class="w-4 h-4 rounded-full bg-zinc-200"></div>
+                            <div class="w-4 h-4 rounded-full bg-zinc-900"></div>
+                            <div class="w-4 h-4 rounded-full bg-indigo-600"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="md:col-span-12 p-12 bg-zinc-50 dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 rounded-[4rem] text-center">
+                    <h4 class="text-sm font-black text-zinc-400 uppercase tracking-[0.4em] mb-8">System Infrastructure
+                    </h4>
+                    <div class="flex flex-wrap justify-center gap-12 grayscale opacity-50">
+                        <span
+                            class="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">Laravel
+                            11</span>
+                        <span class="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">DomPDF
+                            Engine</span>
+                        <span class="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">Volt
+                            Livewire</span>
+                        <span
+                            class="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">Tailwind
+                            CSS</span>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <footer class="relative z-30 max-w-7xl mx-auto pb-20 px-8 border-t border-zinc-200 dark:border-zinc-800 pt-10">
+            <div
+                class="flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-black tracking-[0.4em] text-zinc-400 uppercase">
+                <div class="flex items-center gap-4">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Sistem Agenda Marison © 2026
+                </div>
+                <div class="flex gap-8">
+                    <a href="/features" class="hover:text-indigo-600 transition-colors">Features</a>
+                    <a href="/login" class="hover:text-indigo-600 transition-colors">Portal Login</a>
+                </div>
+            </div>
+        </footer>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.getElementById('scroll-ctx');
-            const items = document.querySelectorAll('.nav-item');
-            const sections = document.querySelectorAll('section');
-
-            container.addEventListener('scroll', () => {
-                let current = "";
-                sections.forEach(s => {
-                    if (container.scrollTop >= s.offsetTop - 250) current = s.getAttribute('id');
-                });
-                items.forEach(i => {
-                    i.classList.toggle('nav-active', i.getAttribute('href') === `#${current}`);
-                });
-            });
-        });
-    </script>
 </x-layouts.auth>
+
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+
+    .scroll-smooth {
+        scroll-behavior: smooth;
+    }
+
+    /* Custom Scrollbar */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #e4e4e7;
+        border-radius: 20px;
+    }
+
+    .dark .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #27272a;
+    }
+</style>
