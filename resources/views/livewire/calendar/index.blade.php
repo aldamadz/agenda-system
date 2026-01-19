@@ -136,34 +136,58 @@ $exportPdf = function () {
                         'display_date' => $dateString,
                         'user' => $agenda->user,
                         'title' => $agenda->title,
-                        'jam_dibuat' => Carbon::parse($agenda->created_at)->format('H:i'),
-                        'jam_deadline' => $agenda->deadline ? Carbon::parse($agenda->deadline)->format('H:i') : '-',
+                        // TANGGAL & JAM MULAI
+                        'jam_dibuat' => Carbon::parse($agenda->created_at)->translatedFormat('d/m/Y H:i'),
+                        // TANGGAL & JAM LIMIT (DEADLINE)
+                        'jam_deadline' => $agenda->deadline ? Carbon::parse($agenda->deadline)->translatedFormat('d/m/Y H:i') : '-',
                         'display_status' => $agenda->status,
-                        'jam_selesai' => $agenda->status === 'completed' ? Carbon::parse($agenda->updated_at)->format('H:i') : null,
+                        // TANGGAL & JAM SELESAI AKHIR
+                        'jam_selesai' => $agenda->status === 'completed' ? Carbon::parse($agenda->updated_at)->translatedFormat('d/m/Y H:i') : null,
                         'display_steps' => $agenda->steps->map(function ($s) use ($agenda) {
                             $start = Carbon::parse($agenda->created_at);
                             $end = $s->completed_at ? Carbon::parse($s->completed_at) : now();
 
-                            // Hitung Durasi (Selisih waktu dibuat sampai selesai/sekarang)
+                            // Logika Durasi
                             $diff = $start->diff($end);
-                            $durationLabel = $diff->format('%h jam %i mnt');
+                            $parts = [];
+                            if ($diff->d > 0) {
+                                $parts[] = $diff->d . ' hari';
+                            }
+                            if ($diff->h > 0) {
+                                $parts[] = $diff->h . ' jam';
+                            }
+                            if ($diff->i > 0) {
+                                $parts[] = $diff->i . ' mnt';
+                            }
+                            $durationLabel = empty($parts) ? '0 mnt' : implode(' ', $parts);
 
-                            // Logika Overdue: Jika ada deadline dan waktu selesai (atau sekarang) melewati deadline
+                            // Logika Overdue
                             $isOverdue = false;
                             $overdueLabel = '';
                             if ($agenda->deadline) {
                                 $deadline = Carbon::parse($agenda->deadline);
                                 if ($end->greaterThan($deadline)) {
                                     $isOverdue = true;
-                                    $overdueDiff = $deadline->diff($end);
-                                    $overdueLabel = $overdueDiff->format('%hj %im');
+                                    $oDiff = $deadline->diff($end);
+                                    $oParts = [];
+                                    if ($oDiff->d > 0) {
+                                        $oParts[] = $oDiff->d . 'h';
+                                    }
+                                    if ($oDiff->h > 0) {
+                                        $oParts[] = $oDiff->h . 'j';
+                                    }
+                                    if ($oDiff->i > 0) {
+                                        $oParts[] = $oDiff->i . 'm';
+                                    }
+                                    $overdueLabel = implode(' ', $oParts);
                                 }
                             }
 
                             return (object) [
                                 'step_name' => $s->step_name,
                                 'is_completed' => (bool) $s->completed_at,
-                                'completed_time' => $s->completed_at ? Carbon::parse($s->completed_at)->format('H:i') : null,
+                                // TANGGAL & JAM SELESAI PER TAHAPAN
+                                'completed_time' => $s->completed_at ? Carbon::parse($s->completed_at)->translatedFormat('d/m H:i') : null,
                                 'is_overdue' => $isOverdue,
                                 'overdue_label' => $overdueLabel,
                                 'duration' => $durationLabel,
