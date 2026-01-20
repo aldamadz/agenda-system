@@ -19,7 +19,7 @@
 @endphp
 
 <flux:sidebar sticky stashable wire:poll.30s
-    class="sidebar-glass glass-card !bg-white/50 dark:!bg-zinc-950/20 !border-e !border-white/20 dark:!border-zinc-800/30 backdrop-blur-2xl">
+    class="sidebar-glass glass-card bg-slate-50/80 dark:bg-zinc-950/20 border-e border-slate-200 dark:border-zinc-800/30 backdrop-blur-2xl">
 
     <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
