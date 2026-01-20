@@ -10,12 +10,28 @@
                         border-r border-zinc-200/50 dark:border-white/10 shadow-2xl">
 
                 <div class="w-full max-w-sm mx-auto">
+
+                    {{-- Logo Baru --}}
+                    <div class="mb-12 flex items-center gap-3 cursor-pointer group/logo"
+                        onclick="window.location.href='/'">
+                        <div
+                            class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transition-all duration-500 group-hover/logo:rotate-[15deg] group-hover/logo:scale-110">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span
+                            class="text-2xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase font-sans">
+                            Agenda<span class="text-indigo-600">.</span>
+                        </span>
+                    </div>
+
                     <div class="mb-10">
-                        <h1
-                            class="text-4xl font-extrabold tracking-tighter text-zinc-900 dark:text-white transition-colors">
-                            Agenda<span class="text-indigo-600 dark:text-indigo-400">.</span>
+                        <h1 class="text-sm font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 mb-1">
+                            Selamat Datang
                         </h1>
-                        <p class="text-zinc-500 dark:text-zinc-400 mt-2 font-medium">Selesaikan tugasmu tepat waktu.</p>
+                        <p class="text-zinc-500 dark:text-zinc-400 font-medium">Selesaikan tugasmu tepat waktu.</p>
                     </div>
 
                     <x-auth-session-status class="mb-4" :status="session('status')" />
@@ -59,12 +75,10 @@
 
                 <div class="absolute inset-0 overflow-hidden">
                     <div
-                        class="absolute top-[-10%] right-[10%] w-[500px] h-[500px]
-                                bg-indigo-200/50 dark:bg-indigo-600/20 rounded-full blur-[100px] animate-blob">
+                        class="absolute top-[-10%] right-[10%] w-[500px] h-[500px] bg-indigo-200/50 dark:bg-indigo-600/20 rounded-full blur-[100px] animate-blob">
                     </div>
                     <div
-                        class="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px]
-                                bg-purple-200/50 dark:bg-purple-600/20 rounded-full blur-[100px] animate-blob animation-delay-2000">
+                        class="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-200/50 dark:bg-purple-600/20 rounded-full blur-[100px] animate-blob animation-delay-2000">
                     </div>
                 </div>
 
@@ -76,7 +90,7 @@
                                 class="w-24 h-24 text-indigo-600 dark:text-indigo-300" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 00-2-2v12a2 2 0 002 2z" />
                             </svg>
                             <div
                                 class="absolute -bottom-4 -right-4 p-4 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl border border-zinc-100 dark:border-zinc-700 animate-pulse">
