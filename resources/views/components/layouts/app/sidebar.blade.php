@@ -4,14 +4,28 @@
     $isManager = false;
     $userInitials = '??';
 
+    // Inisialisasi hitungan badge (Dinamis)
+    $approvalCount = 0;
+    $issueCount = 0;
+
     if ($user) {
         $isAdmin = $user->role === 'admin';
         $hasSubordinates = \App\Models\User::where('parent_id', $user->id)->exists();
         $isManager = $user->role === 'manager' || $isAdmin || $hasSubordinates;
         $userInitials = method_exists($user, 'initials') ? $user->initials() : strtoupper(substr($user->name, 0, 2));
+
+        // Ambil data real-time untuk badge (Sesuaikan nama model & fieldnya)
+        if ($isManager) {
+            $approvalCount = \App\Models\Agenda::where('status', 'pending')->count();
+
+            // Contoh: Hitung issue yang belum selesai
+            // $issueCount = \App\Models\Issue::where('is_resolved', false)->count();
+            $issueCount = 2; // Gantilah dengan query asli
+        }
     }
 @endphp
 
+{{-- wire:poll.30s akan menjalankan ulang blok @php di atas setiap 30 detik tanpa refresh --}}
 <flux:sidebar sticky stashable wire:poll.30s
     class="sidebar-glass glass-card bg-slate-50/90 dark:bg-zinc-950/20 border-e border-slate-200 dark:border-zinc-800/30 backdrop-blur-2xl">
 
@@ -51,12 +65,17 @@
             @if ($isManager)
                 <flux:navlist.group :heading="__('Managerial')"
                     class="grid mt-6 gap-1 text-slate-900 dark:text-zinc-400 font-semibold">
+                    {{-- BADGE DINAMIS PERSETUJUAN --}}
                     <flux:navlist.item icon="check-badge" :href="route('manager.approval')"
-                        :current="request()->routeIs('manager.approval')" wire:navigate>
+                        :current="request()->routeIs('manager.approval')"
+                        :badge="$approvalCount > 0 ? $approvalCount : null" badge-color="indigo" wire:navigate>
                         {{ __('Persetujuan') }}
                     </flux:navlist.item>
+
+                    {{-- BADGE DINAMIS ISSUE --}}
                     <flux:navlist.item icon="exclamation-triangle" :href="route('manager.issues')"
-                        :current="request()->routeIs('manager.issues')" wire:navigate>
+                        :current="request()->routeIs('manager.issues')" :badge="$issueCount > 0 ? $issueCount : null"
+                        badge-color="red" wire:navigate>
                         {{ __('Issue Center') }}
                     </flux:navlist.item>
                 </flux:navlist.group>
