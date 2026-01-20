@@ -90,7 +90,7 @@ $resetFilters = fn() => [($this->filterMode = 'all'), ($this->search = ''), $thi
 
     {{-- Filter Toolbar --}}
     <div
-        class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 p-4 rounded-[2rem] flex flex-wrap items-center gap-4 shadow-sm relative z-20">
+        class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 p-4 rounded-[2rem] flex flex-wrap items-center gap-4 shadow-sm relative z-10">
         <div
             class="flex items-center gap-2 pr-4 border-r border-slate-100 dark:border-zinc-700 text-slate-500 dark:text-zinc-400">
             <flux:icon.funnel variant="micro" class="size-4" />
